@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,27 +49,43 @@ const Index = () => {
 
     setIsAnalyzing(true);
     setError(null);
-    setAnalysisResult(null);
-    setSummaryResult(null);
+    setAnalysisResult(null); // clear previous analysis
+    setSummaryResult(null); // clear summary if new analysis is started
 
     try {
+      console.log('Sending analysis request to:', window.location.origin + '/analyze');
+      console.log('Request payload:', { text: inputText.substring(0, 100) + '...' });
+      
+      // First request to analyze endpoint
       const response = await fetch('/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: inputText
+        }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Check if response is actually JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await response.text();
+        console.error('Non-JSON response received:', responseText);
         throw new Error(`Server returned ${contentType || 'unknown content type'}. Expected JSON. Response: ${responseText.substring(0, 200)}...`);
       }
 
       const data = await response.json();
+      console.log('Analysis response:', data);
+      
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
-
+      
+      // Only set fields for sentiment, confidence, keyTopics, wordCount, trust info – NOT summary
       const result: AnalysisResult = {
         sentiment: data.sentiment || data.label || 'Unknown',
         confidence: data.confidence || Math.round((data.score || 0) * 100),
@@ -80,15 +95,20 @@ const Index = () => {
         trust_status: data.trust_status,
         trust_reason: data.trust_reason,
       };
-
+      
       setAnalysisResult(result);
 
       // Fetch similar articles as before
       try {
+        console.log('Fetching similar articles...');
         const similarResponse = await fetch('/similar', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: inputText }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: inputText
+          }),
         });
 
         if (similarResponse.ok) {
@@ -96,26 +116,32 @@ const Index = () => {
           if (similarContentType && similarContentType.includes('application/json')) {
             const similarData = await similarResponse.json();
             setSimilarArticles(similarData.articles || []);
+            console.log('Similar articles found:', similarData.articles?.length || 0);
           } else {
+            console.error('Similar articles endpoint returned non-JSON response');
             setSimilarArticles([]);
           }
         } else {
+          console.error('Similar articles request failed:', similarResponse.status);
           setSimilarArticles([]);
         }
       } catch (similarError) {
+        console.error('Error fetching similar articles:', similarError);
         setSimilarArticles([]);
       }
-
+      
       toast({
         title: "Analysis Complete",
         description: `Sentiment: ${result.sentiment} (${result.confidence}% confidence)`,
       });
-
+      
     } catch (error) {
+      console.error('Error analyzing text:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(errorMessage);
+      
       toast({
-        title: "Analysis Failed",
+        title: "Analysis Failed", 
         description: errorMessage,
         variant: "destructive",
       });
@@ -157,6 +183,7 @@ const Index = () => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setSummaryResult(null);
+      // Only show the error if the user is still attempting the summarize action (not if they cleared input etc)
       if (inputText.trim()) {
         toast({
           title: "Summarization Failed",
@@ -200,14 +227,14 @@ const Index = () => {
             <div className="flex items-center justify-center mb-4">
               <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
               <h1 className="text-4xl font-bold text-gray-900">
-                <TrueFocus
-                  sentence="News Analytics"
-                  manualMode={false}
-                  blurAmount={5}
-                  borderColor="red"
-                  animationDuration={2}
-                  pauseBetweenAnimations={1}
-                />
+                <TrueFocus 
+sentence="News Analytics"
+manualMode={false}
+blurAmount={5}
+borderColor="red"
+animationDuration={2}
+pauseBetweenAnimations={1}
+/>
               </h1>
             </div>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -396,9 +423,9 @@ const Index = () => {
                           <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
                             <ExternalLink className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <a
-                                href={article.url}
-                                target="_blank"
+                              <a 
+                                href={article.url} 
+                                target="_blank" 
                                 rel="noopener noreferrer"
                                 className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
                               >
