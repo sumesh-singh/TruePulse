@@ -84,17 +84,38 @@ def home():
 @app.route('/health', methods=['GET'])
 def health_check():
     # The model_status gives clarity to the frontend on backend readiness.
-    # This endpoint should ALWAYS return 200, never 500, to prevent frontend "offline" status unless server is really down.
-    model_loaded = classifier is not None and getattr(
-        classifier, 'classifier', None) is not None
-    model_status = "loaded" if model_loaded else "not loaded"
-    status = "healthy" if model_loaded else "degraded"
-
-    return jsonify({
-        "status": status,
-        "model_status": model_status,
-        "timestamp": datetime.now().isoformat()
-    }), 200
+    # Guarantees status 200 and always responds with sane defaults for both None and normal operation.
+    try:
+        loaded = False
+        model_status = "not loaded"
+        if classifier is not None:
+            # Defensive: hasattr and attribute access
+            try:
+                loaded = getattr(classifier, "classifier", None) is not None
+                model_status = "loaded" if loaded else "not loaded"
+            except Exception as e:
+                app.logger.error(f"Error checking classifier.classifier: {e}")
+                loaded = False
+                model_status = "not loaded"
+        else:
+            loaded = False
+            model_status = "not loaded"
+        
+        status = "healthy" if loaded else "degraded"
+        return jsonify({
+            "status": status,
+            "model_status": model_status,
+            "timestamp": datetime.now().isoformat()
+        }), 200
+    except Exception as e:
+        # This must still return a 200 to frontend (NEVER crash)
+        app.logger.error(f"Health check endpoint failed: {e}")
+        return jsonify({
+            "status": "degraded",
+            "model_status": "not loaded",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e)
+        }), 200
 
 @app.route('/analyze', methods=['POST'])
 def analyze_text():
