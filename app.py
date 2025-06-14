@@ -27,6 +27,14 @@ except Exception as e:
     app.logger.error(f"Failed to load model: {e}")
     classifier = None
 
+# Initialize summarization model at startup
+try:
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    app.logger.info("Summarization model loaded successfully")
+except Exception as e:
+    app.logger.error(f"Failed to load summarizer model: {e}")
+    summarizer = None
+
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({
@@ -68,6 +76,7 @@ def analyze_text():
         url_pattern = re.compile(
             r'^(http|https)://[^\s/$.?#].[^\s]*$', re.IGNORECASE)
         is_url = url_pattern.match(text)
+        is_plain_text = False  # we'll use this for the summary origin
         if is_url:
             try:
                 # Fetch page content
@@ -88,14 +97,13 @@ def analyze_text():
                     ps = soup.find_all("p")
                     article_text = " ".join([p.get_text(separator=" ", strip=True) for p in ps])
 
-                # Remove boilerplate, short, or empty content
                 article_text = article_text.strip()
-                # Minimum threshold of words for news
                 if len(article_text.split()) < 50:
                     return jsonify({
                         "error": "Could not extract article text from the provided URL. Please ensure it's a valid news article."
                     }), 400
 
+                summary_input = article_text
                 text = article_text  # override input with fetched content
 
             except Exception as e:
@@ -110,24 +118,46 @@ def analyze_text():
                 return jsonify({
                     "error": "Input looks like a URL, but not starting with http(s)://. Please provide a full and valid news article link."
                 }), 400
+            is_plain_text = True
+            summary_input = text
+
+        # Generate summary if summarizer is loaded and content is long enough
+        summary_text = ""
+        summary_error = ""
+        if summarizer is not None:
+            wc = len(summary_input.split())
+            if wc > 40:  # Only summarize if length makes sense, minimum
+                try:
+                    # The summarizer returns a list of dicts with 'summary_text'
+                    summary_result = summarizer(summary_input, max_length=130, min_length=30, do_sample=False)
+                    summary_text = summary_result[0]['summary_text']
+                except Exception as e:
+                    summary_error = f"Failed to summarize text: {str(e)}"
+                    app.logger.error(summary_error)
+            else:
+                summary_text = "Text is too short to generate a meaningful summary."
+        else:
+            summary_text = "Summarization model not available."
 
         # Use the classifier to analyze sentiment
         try:
             result = classifier.classify_text(text)
             
-            # Return analytics data in the format expected by frontend
+            # If summary already generated above, replace default in result (i.e., override model summary with actual summary)
             response = {
                 "sentiment": result['sentiment'],
                 "confidence": result['confidence'],
                 "keyTopics": result['keyTopics'],
-                "summary": result['summary'],
+                "summary": summary_text,
                 "label": result['label'],
                 "score": result['score'],
                 "wordCount": result['word_count'],
                 "text": text[:100] + "..." if len(text) > 100 else text,
                 "analysis_timestamp": datetime.now().isoformat()
             }
-            
+            if summary_error:
+                response["summary_error"] = summary_error
+
             app.logger.info(f"Successfully analyzed text with sentiment: {result['sentiment']}")
             return jsonify(response)
 

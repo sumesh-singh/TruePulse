@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, FileText, TrendingUp, ExternalLink, AlertCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import TrueFocus from './TrueFocus';
+
 
 interface SimilarArticle {
   title: string;
@@ -158,7 +160,16 @@ const Index = () => {
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
               <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-4xl font-bold text-gray-900">News Analytics</h1>
+              <h1 className="text-4xl font-bold text-gray-900">
+                <TrueFocus 
+sentence="News Analytics"
+manualMode={false}
+blurAmount={5}
+borderColor="red"
+animationDuration={2}
+pauseBetweenAnimations={1}
+/>
+              </h1>
             </div>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               AI-powered sentiment analysis for news articles. Analyze tone, extract key topics, and discover similar content.
