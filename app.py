@@ -1,4 +1,3 @@
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from transformers import pipeline
@@ -8,6 +7,7 @@ import os
 import re
 from datetime import datetime, timedelta
 from fake_news_classifier import FakeNewsClassifier
+from bs4 import BeautifulSoup
 
 # Create Flask application instance
 app = Flask(__name__)
@@ -63,6 +63,53 @@ def analyze_text():
         text = data['text'].strip()
         if not text:
             return jsonify({"error": "Text cannot be empty"}), 400
+
+        # 1. Check if input is a URL
+        url_pattern = re.compile(
+            r'^(http|https)://[^\s/$.?#].[^\s]*$', re.IGNORECASE)
+        is_url = url_pattern.match(text)
+        if is_url:
+            try:
+                # Fetch page content
+                resp = requests.get(text, timeout=10)
+                if resp.status_code != 200:
+                    return jsonify({
+                        "error": f"Failed to fetch article. HTTP status: {resp.status_code}"
+                    }), 400
+                html = resp.text
+                soup = BeautifulSoup(html, "html.parser")
+
+                # Try to extract news-like text (get <article> tag content, fallback to <p> tags)
+                article = soup.find("article")
+                article_text = ""
+                if article:
+                    article_text = " ".join([p.get_text(separator=" ", strip=True) for p in article.find_all("p")])
+                if not article_text:
+                    ps = soup.find_all("p")
+                    article_text = " ".join([p.get_text(separator=" ", strip=True) for p in ps])
+
+                # Remove boilerplate, short, or empty content
+                article_text = article_text.strip()
+                # Minimum threshold of words for news
+                if len(article_text.split()) < 50:
+                    return jsonify({
+                        "error": "Could not extract article text from the provided URL. Please ensure it's a valid news article."
+                    }), 400
+
+                text = article_text  # override input with fetched content
+
+            except Exception as e:
+                app.logger.error(f"Failed to fetch or process the URL: {e}")
+                return jsonify({
+                    "error": f"Unable to fetch article content from the provided URL: {str(e)}"
+                }), 400
+        else:
+            # If input is not a URL, we process as normal text, but reject if input looks like a non-news random URL
+            url_like = re.match(r'^.+\.[a-z]{2,}(/.*)?$', text)
+            if url_like:
+                return jsonify({
+                    "error": "Input looks like a URL, but not starting with http(s)://. Please provide a full and valid news article link."
+                }), 400
 
         # Use the classifier to analyze sentiment
         try:
@@ -198,4 +245,3 @@ def find_similar_articles():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-
