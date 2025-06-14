@@ -1,15 +1,22 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, FileText, TrendingUp } from 'lucide-react';
+import { Loader2, Send, FileText, TrendingUp, ExternalLink } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+
+interface SimilarArticle {
+  title: string;
+  url: string;
+}
 
 const Index = () => {
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [similarArticles, setSimilarArticles] = useState<SimilarArticle[]>([]);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,6 +34,7 @@ const Index = () => {
     setIsAnalyzing(true);
     
     try {
+      // First request to analyze endpoint
       const response = await fetch('/analyze', {
         method: 'POST',
         headers: {
@@ -53,6 +61,30 @@ const Index = () => {
       };
       
       setAnalysisResult(result);
+
+      // Second request to similar articles endpoint
+      try {
+        const similarResponse = await fetch('/similar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: inputText
+          }),
+        });
+
+        if (similarResponse.ok) {
+          const similarData = await similarResponse.json();
+          setSimilarArticles(similarData.articles || []);
+        } else {
+          console.error('Similar articles request failed:', similarResponse.status);
+          setSimilarArticles([]);
+        }
+      } catch (similarError) {
+        console.error('Error fetching similar articles:', similarError);
+        setSimilarArticles([]);
+      }
       
       toast({
         title: "Analysis Complete",
@@ -206,6 +238,31 @@ const Index = () => {
                     <h3 className="font-semibold text-gray-800 mb-3">Summary</h3>
                     <p className="text-gray-700 leading-relaxed">{analysisResult.summary}</p>
                   </div>
+
+                  {/* Similar Articles */}
+                  {similarArticles.length > 0 && (
+                    <div className="p-4 rounded-lg bg-gray-50 border">
+                      <h3 className="font-semibold text-gray-800 mb-3">Similar Articles</h3>
+                      <div className="space-y-3">
+                        {similarArticles.map((article, index) => (
+                          <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
+                            <ExternalLink className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <a 
+                                href={article.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
+                              >
+                                {article.title}
+                              </a>
+                              <p className="text-xs text-gray-500 mt-1 truncate">{article.url}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Stats */}
                   <div className="grid grid-cols-2 gap-4">
