@@ -7,7 +7,6 @@ import { Loader2, Send, FileText, TrendingUp, ExternalLink, AlertCircle } from '
 import { useToast } from "@/hooks/use-toast";
 import TrueFocus from './TrueFocus';
 
-
 interface SimilarArticle {
   title: string;
   url: string;
@@ -30,6 +29,8 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [similarArticles, setSimilarArticles] = useState<SimilarArticle[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [summaryResult, setSummaryResult] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,6 +144,49 @@ const Index = () => {
     }
   };
 
+  const handleSummarize = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!inputText.trim()) {
+      toast({
+        title: "Input Required",
+        description: "Please enter a news article or snippet to summarize.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSummarizing(true);
+    setSummaryResult(null);
+    try {
+      const response = await fetch('/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: inputText }),
+      });
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        throw new Error(`Server returned ${contentType}. Response: ${responseText.substring(0, 100)}...`);
+      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Summarization failed');
+      setSummaryResult(data.summary || "Summary not available.");
+      toast({
+        title: "Summary Complete",
+        description: "The article has been summarized.",
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setSummaryResult(null);
+      toast({
+        title: "Summarization Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment.toLowerCase()) {
       case 'positive': return 'bg-green-100 text-green-800 border-green-200';
@@ -206,25 +250,51 @@ pauseBetweenAnimations={1}
                     <span>{inputText.split(' ').filter(word => word.length > 0).length} words</span>
                   </div>
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  disabled={isAnalyzing || !inputText.trim()}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium transition-all duration-200 transform hover:scale-[1.02]"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Analyzing Sentiment...
-                    </>
-                  ) : (
-                    <>
-                      <TrendingUp className="mr-2 h-5 w-5" />
-                      Analyze Sentiment
-                    </>
-                  )}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="submit"
+                    disabled={isAnalyzing || !inputText.trim()}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium transition-all duration-200 transform hover:scale-[1.02]"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Analyzing Sentiment...
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="mr-2 h-5 w-5" />
+                        Analyze Sentiment
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={isSummarizing || !inputText.trim()}
+                    className="w-full py-3 text-lg font-medium transition-all duration-200"
+                    onClick={handleSummarize}
+                  >
+                    {isSummarizing ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Summarizing...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-5 w-5" />
+                        Summarize Article
+                      </>
+                    )}
+                  </Button>
+                </div>
               </form>
+              {summaryResult && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="font-semibold mb-2 text-gray-700">Summary</h3>
+                  <p className="text-gray-900 whitespace-pre-line">{summaryResult}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
