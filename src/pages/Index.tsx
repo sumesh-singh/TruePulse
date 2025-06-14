@@ -4,19 +4,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, FileText, TrendingUp, ExternalLink } from 'lucide-react';
+import { Loader2, Send, FileText, TrendingUp, ExternalLink, AlertCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface SimilarArticle {
   title: string;
   url: string;
+  source?: string;
+  published_at?: string;
+  description?: string;
+}
+
+interface AnalysisResult {
+  sentiment: string;
+  confidence: number;
+  keyTopics: string[];
+  summary: string;
+  wordCount: number;
 }
 
 const Index = () => {
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [similarArticles, setSimilarArticles] = useState<SimilarArticle[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,8 +44,11 @@ const Index = () => {
     }
 
     setIsAnalyzing(true);
+    setError(null);
     
     try {
+      console.log('Sending analysis request...');
+      
       // First request to analyze endpoint
       const response = await fetch('/analyze', {
         method: 'POST',
@@ -45,25 +60,28 @@ const Index = () => {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
       
-      // Transform the response to match our expected format
-      const result = {
-        sentiment: data.label || 'Unknown',
-        confidence: Math.round((data.score || 0) * 100),
-        keyTopics: data.keyTopics || ['Technology', 'Business', 'Innovation'],
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      }
+
+      console.log('Analysis response:', data);
+      
+      // Set the analysis result with the correct data structure
+      const result: AnalysisResult = {
+        sentiment: data.sentiment || data.label || 'Unknown',
+        confidence: data.confidence || Math.round((data.score || 0) * 100),
+        keyTopics: data.keyTopics || ['General', 'News'],
         summary: data.summary || 'Analysis completed successfully.',
-        wordCount: inputText.split(' ').filter(word => word.length > 0).length,
+        wordCount: data.wordCount || inputText.split(' ').filter(word => word.length > 0).length,
       };
       
       setAnalysisResult(result);
 
       // Second request to similar articles endpoint
       try {
+        console.log('Fetching similar articles...');
         const similarResponse = await fetch('/similar', {
           method: 'POST',
           headers: {
@@ -77,6 +95,7 @@ const Index = () => {
         if (similarResponse.ok) {
           const similarData = await similarResponse.json();
           setSimilarArticles(similarData.articles || []);
+          console.log('Similar articles found:', similarData.articles?.length || 0);
         } else {
           console.error('Similar articles request failed:', similarResponse.status);
           setSimilarArticles([]);
@@ -88,14 +107,17 @@ const Index = () => {
       
       toast({
         title: "Analysis Complete",
-        description: "Your news article has been successfully analyzed.",
+        description: `Sentiment: ${result.sentiment} (${result.confidence}% confidence)`,
       });
+      
     } catch (error) {
       console.error('Error analyzing text:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(errorMessage);
       
       toast({
         title: "Analysis Failed",
-        description: "There was an error analyzing your text. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -104,9 +126,10 @@ const Index = () => {
   };
 
   const getSentimentColor = (sentiment: string) => {
-    switch (sentiment) {
-      case 'Positive': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Negative': return 'bg-red-100 text-red-800 border-red-200';
+    switch (sentiment.toLowerCase()) {
+      case 'positive': return 'bg-green-100 text-green-800 border-green-200';
+      case 'negative': return 'bg-red-100 text-red-800 border-red-200';
+      case 'neutral': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default: return 'bg-blue-100 text-blue-800 border-blue-200';
     }
   };
@@ -118,11 +141,11 @@ const Index = () => {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
-              <FileText className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-4xl font-bold text-gray-900">NewsAnalyzer</h1>
+              <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
+              <h1 className="text-4xl font-bold text-gray-900">News Analytics</h1>
             </div>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Advanced AI-powered news analysis tool. Get insights on sentiment, key topics, and trends from any news article or text snippet.
+              AI-powered sentiment analysis for news articles. Analyze tone, extract key topics, and discover similar content.
             </p>
           </div>
         </div>
@@ -136,17 +159,17 @@ const Index = () => {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center text-2xl text-gray-800">
                 <Send className="h-6 w-6 text-blue-600 mr-2" />
-                Input Article
+                Article Input
               </CardTitle>
               <CardDescription className="text-gray-600">
-                Paste your news article or text snippet below for analysis
+                Paste the full text of a news article for sentiment analysis
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Textarea
-                    placeholder="Paste your news article or text snippet here..."
+                    placeholder="Paste the full news article text here for analysis..."
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     className="min-h-[300px] text-base leading-relaxed border-gray-200 focus:border-blue-500 focus:ring-blue-500 resize-none"
@@ -165,12 +188,12 @@ const Index = () => {
                   {isAnalyzing ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Analyzing...
+                      Analyzing Sentiment...
                     </>
                   ) : (
                     <>
                       <TrendingUp className="mr-2 h-5 w-5" />
-                      Analyze Article
+                      Analyze Sentiment
                     </>
                   )}
                 </Button>
@@ -182,31 +205,39 @@ const Index = () => {
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center text-2xl text-gray-800">
-                <TrendingUp className="h-6 w-6 text-blue-600 mr-2" />
-                Analysis Results
+                <FileText className="h-6 w-6 text-blue-600 mr-2" />
+                Analytics Results
               </CardTitle>
               <CardDescription className="text-gray-600">
-                AI-powered insights and analysis
+                Sentiment analysis and key insights
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {!analysisResult && !isAnalyzing && (
+              {error && (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-500" />
+                  <p className="text-lg text-red-700 mb-2">Analysis Error</p>
+                  <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>
+                </div>
+              )}
+
+              {!analysisResult && !isAnalyzing && !error && (
                 <div className="text-center py-12 text-gray-500">
                   <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg mb-2">No analysis yet</p>
-                  <p className="text-sm">Submit an article to see the analysis results here</p>
+                  <p className="text-lg mb-2">Ready for Analysis</p>
+                  <p className="text-sm">Enter article text above to see sentiment analysis and insights</p>
                 </div>
               )}
 
               {isAnalyzing && (
                 <div className="text-center py-12">
                   <Loader2 className="h-16 w-16 mx-auto mb-4 text-blue-600 animate-spin" />
-                  <p className="text-lg text-gray-700 mb-2">Analyzing your article...</p>
-                  <p className="text-sm text-gray-500">This may take a few moments</p>
+                  <p className="text-lg text-gray-700 mb-2">Analyzing sentiment...</p>
+                  <p className="text-sm text-gray-500">Processing your article with AI</p>
                 </div>
               )}
 
-              {analysisResult && (
+              {analysisResult && !error && (
                 <div className="space-y-6 animate-in fade-in duration-500">
                   {/* Sentiment Analysis */}
                   <div className="p-4 rounded-lg bg-gray-50 border">
@@ -235,14 +266,14 @@ const Index = () => {
 
                   {/* Summary */}
                   <div className="p-4 rounded-lg bg-gray-50 border">
-                    <h3 className="font-semibold text-gray-800 mb-3">Summary</h3>
+                    <h3 className="font-semibold text-gray-800 mb-3">Analysis Summary</h3>
                     <p className="text-gray-700 leading-relaxed">{analysisResult.summary}</p>
                   </div>
 
                   {/* Similar Articles */}
                   {similarArticles.length > 0 && (
                     <div className="p-4 rounded-lg bg-gray-50 border">
-                      <h3 className="font-semibold text-gray-800 mb-3">Similar Articles</h3>
+                      <h3 className="font-semibold text-gray-800 mb-3">Related Articles</h3>
                       <div className="space-y-3">
                         {similarArticles.map((article, index) => (
                           <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
@@ -256,7 +287,9 @@ const Index = () => {
                               >
                                 {article.title}
                               </a>
-                              <p className="text-xs text-gray-500 mt-1 truncate">{article.url}</p>
+                              {article.source && (
+                                <p className="text-xs text-gray-500 mt-1">{article.source}</p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -264,7 +297,7 @@ const Index = () => {
                     </div>
                   )}
 
-                  {/* Stats */}
+                  {/* Statistics */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
                       <div className="text-2xl font-bold text-blue-600">{analysisResult.wordCount}</div>
@@ -286,3 +319,4 @@ const Index = () => {
 };
 
 export default Index;
+

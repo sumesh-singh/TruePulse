@@ -1,3 +1,4 @@
+
 from transformers import pipeline
 import logging
 
@@ -8,33 +9,44 @@ logger = logging.getLogger(__name__)
 
 class FakeNewsClassifier:
     def __init__(self):
-        """Initialize the fake news classification pipeline"""
+        """Initialize the sentiment analysis pipeline"""
         self.classifier = None
         self.load_model()
 
     def load_model(self):
-        """Load the HuggingFace transformers pipeline"""
+        """Load the HuggingFace transformers pipeline for sentiment analysis"""
         try:
-            logger.info("Loading fake news detection model...")
+            logger.info("Loading sentiment analysis model...")
+            # Use a proper sentiment analysis model
             self.classifier = pipeline(
-                'text-classification',
-                model='joeddav/xlm-roberta-large-xnli',
+                'sentiment-analysis',
+                model='cardiffnlp/twitter-roberta-base-sentiment-latest',
                 return_all_scores=True
             )
-            logger.info("✓ Fake news detection model loaded successfully")
+            logger.info("✓ Sentiment analysis model loaded successfully")
         except Exception as e:
             logger.error(f"✗ Failed to load model: {e}")
-            self.classifier = None
+            # Fallback to a basic sentiment model
+            try:
+                self.classifier = pipeline(
+                    'sentiment-analysis',
+                    model='distilbert-base-uncased-finetuned-sst-2-english',
+                    return_all_scores=True
+                )
+                logger.info("✓ Fallback sentiment analysis model loaded successfully")
+            except Exception as fallback_error:
+                logger.error(f"✗ Failed to load fallback model: {fallback_error}")
+                self.classifier = None
 
     def classify_text(self, text):
         """
-        Classify text as fake or real news
+        Perform sentiment analysis on text
 
         Args:
-            text (str): The text to classify
+            text (str): The text to analyze
 
         Returns:
-            dict: Contains 'label', 'score', and 'all_scores'
+            dict: Contains sentiment analysis results and analytics
         """
         if self.classifier is None:
             raise RuntimeError(
@@ -44,115 +56,60 @@ class FakeNewsClassifier:
             raise ValueError("Text must be a non-empty string")
 
         try:
-            # Get all classification results
+            # Get sentiment analysis results
             results = self.classifier(text)
 
             # Find the result with highest confidence
             best_result = max(results, key=lambda x: x['score'])
+            
+            # Map labels to readable format
+            label_mapping = {
+                'NEGATIVE': 'Negative',
+                'POSITIVE': 'Positive', 
+                'NEUTRAL': 'Neutral',
+                'LABEL_0': 'Negative',
+                'LABEL_1': 'Positive',
+                'LABEL_2': 'Neutral'
+            }
+            
+            sentiment = label_mapping.get(best_result['label'].upper(), best_result['label'])
+            
+            # Extract key topics (simple keyword extraction)
+            words = text.lower().split()
+            stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
+            key_words = [word.strip('.,!?";') for word in words if len(word) > 4 and word not in stop_words]
+            key_topics = list(set(key_words[:5]))  # Get unique top 5 keywords
+            
+            if not key_topics:
+                key_topics = ['General', 'News', 'Article']
+
+            # Generate summary based on sentiment
+            if sentiment == 'Positive':
+                summary = "The article expresses a positive sentiment with optimistic tone and favorable language."
+            elif sentiment == 'Negative':
+                summary = "The article expresses a negative sentiment with critical or pessimistic tone."
+            else:
+                summary = "The article maintains a neutral tone with balanced and objective language."
 
             return {
-                'label': best_result['label'],
+                'label': sentiment,
                 'score': round(best_result['score'], 4),
+                'sentiment': sentiment,
+                'confidence': round(best_result['score'] * 100, 1),
+                'keyTopics': key_topics,
+                'summary': summary,
                 'all_scores': [
                     {
-                        'label': result['label'],
+                        'label': label_mapping.get(result['label'].upper(), result['label']),
                         'score': round(result['score'], 4)
                     }
                     for result in results
                 ],
-                'text_length': len(text)
+                'text_length': len(text),
+                'word_count': len(text.split())
             }
 
         except Exception as e:
             logger.error(f"Error during classification: {e}")
             raise RuntimeError(f"Classification failed: {e}")
 
-# Standalone function version
-
-
-def classify_text(text):
-    """
-    Standalone function to classify text using the fake news detection model
-
-    Args:
-        text (str): The text to classify
-
-    Returns:
-        dict: Contains 'label' and 'score'
-    """
-    try:
-        # Initialize the pipeline
-        classifier = pipeline(
-            'text-classification',
-            model='joeddav/xlm-roberta-large-xnli',
-            return_all_scores=True
-        )
-
-        # Validate input
-        if not isinstance(text, str) or not text.strip():
-            raise ValueError("Text must be a non-empty string")
-
-        # Perform classification
-        results = classifier(text)
-
-        # Get the highest confidence result
-        best_result = max(results, key=lambda x: x['score'])
-
-        return {
-            'label': best_result['label'],
-            'score': round(best_result['score'], 4)
-        }
-
-    except Exception as e:
-        print(f"Error in classify_text: {e}")
-        return {
-            'label': 'ERROR',
-            'score': 0.0,
-            'error': str(e)
-        }
-
-
-# Example usage and testing
-if __name__ == "__main__":
-    print("Testing Fake News Classifier...")
-    print("=" * 50)
-
-    # Test texts
-    test_texts = [
-        "Scientists have discovered a new planet in our solar system.",
-        "The President announced new economic policies today.",
-        "Breaking: Aliens land in Times Square, demand pizza.",
-        "Stock market reaches new highs amid positive earnings reports."
-    ]
-
-    # Method 1: Using the class
-    print("\n1. Using FakeNewsClassifier class:")
-    classifier_obj = FakeNewsClassifier()
-
-    if classifier_obj.classifier is not None:
-        for i, text in enumerate(test_texts, 1):
-            try:
-                result = classifier_obj.classify_text(text)
-                print(f"\nTest {i}:")
-                print(f"Text: {text}")
-                print(f"Label: {result['label']}")
-                print(f"Confidence: {result['score']}")
-                print(f"All scores: {result['all_scores']}")
-            except Exception as e:
-                print(f"Test {i} failed: {e}")
-    else:
-        print("Model failed to load - cannot run tests")
-
-    # Method 2: Using the standalone function
-    print("\n\n2. Using standalone classify_text function:")
-    for i, text in enumerate(test_texts, 1):
-        result = classify_text(text)
-        print(f"\nTest {i}:")
-        print(f"Text: {text}")
-        print(f"Label: {result['label']}")
-        print(f"Confidence: {result['score']}")
-        if 'error' in result:
-            print(f"Error: {result['error']}")
-
-    print("\n" + "=" * 50)
-    print("Testing completed!")
