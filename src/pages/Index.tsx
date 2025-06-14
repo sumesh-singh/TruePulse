@@ -19,7 +19,6 @@ interface AnalysisResult {
   sentiment: string;
   confidence: number;
   keyTopics: string[];
-  summary: string;
   wordCount: number;
 }
 
@@ -47,7 +46,9 @@ const Index = () => {
 
     setIsAnalyzing(true);
     setError(null);
-    
+    setAnalysisResult(null); // clear previous analysis
+    setSummaryResult(null); // clear summary if new analysis is started
+
     try {
       console.log('Sending analysis request to:', window.location.origin + '/analyze');
       console.log('Request payload:', { text: inputText.substring(0, 100) + '...' });
@@ -81,18 +82,17 @@ const Index = () => {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
       
-      // Set the analysis result with the correct data structure
+      // Only set fields for sentiment, confidence, keyTopics, wordCount – NOT summary
       const result: AnalysisResult = {
         sentiment: data.sentiment || data.label || 'Unknown',
         confidence: data.confidence || Math.round((data.score || 0) * 100),
         keyTopics: data.keyTopics || ['General', 'News'],
-        summary: data.summary || 'Analysis completed successfully.',
         wordCount: data.wordCount || inputText.split(' ').filter(word => word.length > 0).length,
       };
       
       setAnalysisResult(result);
 
-      // Second request to similar articles endpoint
+      // Fetch similar articles as before
       try {
         console.log('Fetching similar articles...');
         const similarResponse = await fetch('/similar', {
@@ -177,11 +177,14 @@ const Index = () => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setSummaryResult(null);
-      toast({
-        title: "Summarization Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Only show the error if the user is still attempting the summarize action (not if they cleared input etc)
+      if (inputText.trim()) {
+        toast({
+          title: "Summarization Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSummarizing(false);
     }
@@ -370,12 +373,6 @@ pauseBetweenAnimations={1}
                         </Badge>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Summary */}
-                  <div className="p-4 rounded-lg bg-gray-50 border">
-                    <h3 className="font-semibold text-gray-800 mb-3">Analysis Summary</h3>
-                    <p className="text-gray-700 leading-relaxed">{analysisResult.summary}</p>
                   </div>
 
                   {/* Similar Articles */}
