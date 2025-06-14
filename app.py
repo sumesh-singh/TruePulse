@@ -1,4 +1,3 @@
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from transformers import pipeline
@@ -60,14 +59,22 @@ def health_check():
 def analyze_text():
     try:
         if classifier is None:
-            return jsonify({"error": "Model not available"}), 500
+            app.logger.error("Model not available: classifier is None")
+            return jsonify({"error": "Model not available. Backend failed to load the classifier. Check server logs for details."}), 500
 
         data = request.get_json()
         if not data or 'text' not in data:
+            app.logger.error("Missing 'text' field in request")
             return jsonify({"error": "Missing 'text' field"}), 400
 
         # Use the classifier class method
-        result = classifier.classify_text(data['text'])
+        try:
+            result = classifier.classify_text(data['text'])
+        except Exception as e:
+            app.logger.error(f"Error during classifier.classify_text: {e}")
+            return jsonify({
+                "error": f"Classifier failed to analyze the text: {str(e)}"
+            }), 500
 
         return jsonify({
             "label": result['label'],
@@ -77,7 +84,7 @@ def analyze_text():
 
     except Exception as e:
         app.logger.error(f"Error in analyze_text: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": f"Internal server error: {e}"}), 500
 
 
 def extract_keywords(text, max_keywords=5):
