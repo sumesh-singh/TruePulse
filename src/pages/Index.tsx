@@ -21,9 +21,6 @@ interface AnalysisResult {
   keyTopics: string[];
   summary: string;
   wordCount: number;
-  trustScore?: number;
-  trustStatus?: string;
-  newsDomain?: string | null;
 }
 
 const Index = () => {
@@ -91,9 +88,6 @@ const Index = () => {
         keyTopics: data.keyTopics || ['General', 'News'],
         summary: data.summary || 'Analysis completed successfully.',
         wordCount: data.wordCount || inputText.split(' ').filter(word => word.length > 0).length,
-        trustScore: data.trustScore,
-        trustStatus: data.trustStatus,
-        newsDomain: data.newsDomain,
       };
       
       setAnalysisResult(result);
@@ -364,35 +358,6 @@ pauseBetweenAnimations={1}
                         {analysisResult.confidence}% confidence
                       </span>
                     </div>
-                  </div>
-
-                  {/* Trust Score / News Source */}
-                  <div className="p-4 rounded-lg bg-yellow-50 border">
-                    <h3 className="font-semibold text-gray-800 mb-3">Trust Score</h3>
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-yellow-800">
-                        {typeof analysisResult.trustScore === "number" ? `${analysisResult.trustScore}/100` : "N/A"}
-                      </span>
-                      <Badge className={
-                        analysisResult.trustStatus === "Trusted"
-                          ? "bg-green-100 text-green-800 border-green-200"
-                          : analysisResult.trustStatus === "Untrusted"
-                            ? "bg-red-100 text-red-800 border-red-200"
-                            : "bg-yellow-100 text-yellow-800 border-yellow-200"
-                      }>
-                        {analysisResult.trustStatus || "Unknown"}
-                      </Badge>
-                      {analysisResult.newsDomain &&
-                        <span className="ml-2 text-xs font-mono text-gray-500">
-                          {analysisResult.newsDomain}
-                        </span>
-                      }
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {analysisResult.trustStatus === "Trusted" && "News source is recognized as generally reliable."}
-                      {analysisResult.trustStatus === "Untrusted" && "This source is flagged as suspicious or unreliable."}
-                      {analysisResult.trustStatus === "Unknown" && "Cannot determine reliability of the source."}
-                    </p>
                   </div>
 
                   {/* Key Topics */}
