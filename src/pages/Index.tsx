@@ -168,7 +168,10 @@ const Index = () => {
         throw new Error(`Server returned ${contentType}. Response: ${responseText.substring(0, 100)}...`);
       }
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Summarization failed');
+      if (!response.ok) {
+        // Always surface the backend "error" field, if present
+        throw new Error(data.error || 'Summarization failed');
+      }
       setSummaryResult(data.summary || "Summary not available.");
       toast({
         title: "Summary Complete",
@@ -177,7 +180,6 @@ const Index = () => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setSummaryResult(null);
-      // Only show the error if the user is still attempting the summarize action (not if they cleared input etc)
       if (inputText.trim()) {
         toast({
           title: "Summarization Failed",
