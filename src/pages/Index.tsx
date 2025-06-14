@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,8 @@ const Index = () => {
     setError(null);
     
     try {
-      console.log('Sending analysis request...');
+      console.log('Sending analysis request to:', window.location.origin + '/analyze');
+      console.log('Request payload:', { text: inputText.substring(0, 100) + '...' });
       
       // First request to analyze endpoint
       const response = await fetch('/analyze', {
@@ -60,13 +60,23 @@ const Index = () => {
         }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response received:', responseText);
+        throw new Error(`Server returned ${contentType || 'unknown content type'}. Expected JSON. Response: ${responseText.substring(0, 200)}...`);
+      }
+
       const data = await response.json();
+      console.log('Analysis response:', data);
       
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
-
-      console.log('Analysis response:', data);
       
       // Set the analysis result with the correct data structure
       const result: AnalysisResult = {
@@ -93,9 +103,15 @@ const Index = () => {
         });
 
         if (similarResponse.ok) {
-          const similarData = await similarResponse.json();
-          setSimilarArticles(similarData.articles || []);
-          console.log('Similar articles found:', similarData.articles?.length || 0);
+          const similarContentType = similarResponse.headers.get('content-type');
+          if (similarContentType && similarContentType.includes('application/json')) {
+            const similarData = await similarResponse.json();
+            setSimilarArticles(similarData.articles || []);
+            console.log('Similar articles found:', similarData.articles?.length || 0);
+          } else {
+            console.error('Similar articles endpoint returned non-JSON response');
+            setSimilarArticles([]);
+          }
         } else {
           console.error('Similar articles request failed:', similarResponse.status);
           setSimilarArticles([]);
@@ -116,7 +132,7 @@ const Index = () => {
       setError(errorMessage);
       
       toast({
-        title: "Analysis Failed",
+        title: "Analysis Failed", 
         description: errorMessage,
         variant: "destructive",
       });
@@ -217,7 +233,18 @@ const Index = () => {
                 <div className="text-center py-8">
                   <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-500" />
                   <p className="text-lg text-red-700 mb-2">Analysis Error</p>
-                  <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>
+                  <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg text-left">
+                    <p className="font-medium mb-2">Error Details:</p>
+                    <p className="break-words">{error}</p>
+                    <div className="mt-3 p-2 bg-red-100 rounded text-xs">
+                      <p className="font-medium">Troubleshooting:</p>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Make sure the Flask backend is running on port 5000</li>
+                        <li>Check if the backend responds at: <code>http://localhost:5000/health</code></li>
+                        <li>Restart both frontend and backend servers</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -319,4 +346,3 @@ const Index = () => {
 };
 
 export default Index;
-
