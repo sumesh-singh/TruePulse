@@ -46,12 +46,17 @@ def home():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    model_status = "loaded" if classifier and classifier.classifier else "not loaded"
+    # The model_status gives clarity to the frontend on backend readiness.
+    # This endpoint should ALWAYS return 200, never 500, to prevent frontend "offline" status unless server is really down.
+    model_loaded = classifier is not None and getattr(classifier, 'classifier', None) is not None
+    model_status = "loaded" if model_loaded else "not loaded"
+    status = "healthy" if model_loaded else "degraded"
+
     return jsonify({
-        "status": "healthy", 
+        "status": status,
         "model_status": model_status,
         "timestamp": datetime.now().isoformat()
-    })
+    }), 200
 
 @app.route('/analyze', methods=['POST'])
 def analyze_text():
