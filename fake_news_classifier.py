@@ -59,27 +59,31 @@ class FakeNewsClassifier:
             # Get sentiment analysis results
             results = self.classifier(text)
 
+            # If result is a list of lists (when return_all_scores=True), pick the first element
+            if isinstance(results, list) and len(results) > 0 and isinstance(results[0], list):
+                results = results[0]
+
             # Find the result with highest confidence
             best_result = max(results, key=lambda x: x['score'])
-            
+
             # Map labels to readable format
             label_mapping = {
                 'NEGATIVE': 'Negative',
-                'POSITIVE': 'Positive', 
+                'POSITIVE': 'Positive',
                 'NEUTRAL': 'Neutral',
                 'LABEL_0': 'Negative',
                 'LABEL_1': 'Positive',
                 'LABEL_2': 'Neutral'
             }
-            
+
             sentiment = label_mapping.get(best_result['label'].upper(), best_result['label'])
-            
+
             # Extract key topics (simple keyword extraction)
             words = text.lower().split()
             stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
             key_words = [word.strip('.,!?";') for word in words if len(word) > 4 and word not in stop_words]
             key_topics = list(set(key_words[:5]))  # Get unique top 5 keywords
-            
+
             if not key_topics:
                 key_topics = ['General', 'News', 'Article']
 
