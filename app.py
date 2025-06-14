@@ -1,3 +1,4 @@
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from transformers import pipeline
@@ -13,10 +14,12 @@ from bs4 import BeautifulSoup
 app = Flask(__name__)
 
 # Enable CORS for all routes and origins
-CORS(app, origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://localhost:8080"])
+CORS(app, origins=["http://localhost:3000", "http://localhost:3001",
+     "http://127.0.0.1:3000", "http://localhost:8080"])
 
 # NewsAPI configuration
-NEWS_API_KEY = os.environ.get('NEWS_API_KEY', '21e2fd56540241069992ea6b8243f6c8')
+NEWS_API_KEY = os.environ.get(
+    'NEWS_API_KEY', '21e2fd56540241069992ea6b8243f6c8')
 NEWS_API_URL = "https://newsapi.org/v2/everything"
 
 # Initialize the sentiment analysis classifier
@@ -35,6 +38,36 @@ except Exception as e:
     app.logger.error(f"Failed to load summarizer model: {e}")
     summarizer = None
 
+# Sample external "database" (in real life, use an actual DB)
+TRUSTED_NEWS_DOMAINS = {"bbc.co.uk", "nytimes.com",
+                        "reuters.com", "apnews.com", "npr.org", "theguardian.com"}
+UNTRUSTED_NEWS_DOMAINS = {"yourscvnews.com", "worldtruth.tv",
+                          "abcnews.com.co", "theonion.com"}  # Example satire/fake
+
+def domain_from_url(url: str) -> str:
+    from urllib.parse import urlparse
+    try:
+        domain = urlparse(url).netloc.lower()
+        domain = domain.lstrip('www.')
+        return domain
+    except Exception:
+        return ""
+
+def calculate_trust_score(domain: str) -> dict:
+    if not domain:
+        # Can't tell, treat as neutral
+        return {"score": 50, "status": "Unknown"}
+    if domain in TRUSTED_NEWS_DOMAINS:
+        return {"score": 95, "status": "Trusted"}
+    if domain in UNTRUSTED_NEWS_DOMAINS:
+        return {"score": 10, "status": "Untrusted"}
+    # Simple goldilocks rule for demo
+    if ".gov" in domain or ".edu" in domain:
+        return {"score": 90, "status": "Trusted"}
+    if ".co" in domain or ".blog" in domain:
+        return {"score": 30, "status": "Suspicious"}
+    return {"score": 60, "status": "Unknown"}
+
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({
@@ -44,11 +77,13 @@ def home():
         "endpoints": ["/analyze", "/similar", "/health"]
     })
 
+# Ensure ONLY ONE health endpoint exists
 @app.route('/health', methods=['GET'])
 def health_check():
     # The model_status gives clarity to the frontend on backend readiness.
     # This endpoint should ALWAYS return 200, never 500, to prevent frontend "offline" status unless server is really down.
-    model_loaded = classifier is not None and getattr(classifier, 'classifier', None) is not None
+    model_loaded = classifier is not None and getattr(
+        classifier, 'classifier', None) is not None
     model_status = "loaded" if model_loaded else "not loaded"
     status = "healthy" if model_loaded else "degraded"
 
