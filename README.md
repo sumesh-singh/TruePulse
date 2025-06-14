@@ -1,73 +1,109 @@
+
 # Welcome to your Lovable project
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/653957cd-f1a4-4bdb-8e52-84c439e11614
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🚀 Quick Start (Backend + Frontend)
 
-**Use Lovable**
+This project includes a React frontend (in this folder) and a Python (Flask) backend (see `app.py` and `fake_news_classifier.py`).
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/653957cd-f1a4-4bdb-8e52-84c439e11614) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### 1. **Clone the Repository**
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 2. **Backend Setup (Python/Flask)**
 
-**Use GitHub Codespaces**
+> **Requirements:**  
+> - Python 3.8+  
+> - pip (Python package manager)  
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+**a) Install backend dependencies:**  
+Navigate to your backend directory (the project root) and install required Python packages:
+
+```sh
+pip install -r requirements.txt
+```
+or, if there is no `requirements.txt` (add if missing by yourself):
+
+```sh
+pip install flask transformers torch
+```
+
+**b) Start the backend server:**
+
+```sh
+python app.py
+```
+This will start the Flask server at `http://localhost:5000`.
+
+---
+
+### 3. **Frontend Setup (React/Vite)**
+
+> **Requirements:**  
+> - Node.js & npm installed ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+
+**a) Install frontend dependencies:**
+```sh
+npm install
+```
+
+**b) Start the frontend development server:**
+```sh
+npm run dev
+```
+Frontend runs at `http://localhost:8080` (proxying API calls to backend).
+
+---
+
+### 4. **Open Your App**
+
+Open your browser and go to:
+- Frontend: [http://localhost:8080](http://localhost:8080)
+- Backend Health: [http://localhost:5000/health](http://localhost:5000/health)
+
+---
+
+## Deploy, Custom Domain, and More
+
+For deployment and custom domains, see Lovable documentation:
+
+- [Publish Your App](https://docs.lovable.dev/user-guides/how-to-deploy)
+- [Connect a Custom Domain](https://docs.lovable.dev/tips-tricks/custom-domain)
+
+---
+
+## Troubleshooting
+
+- If backend API is not connecting (shows offline), check the backend server log and ensure it is running.
+- If you face Python version or CUDA/torch errors, double-check your Python and pip installations.
+
+---
 
 ## What technologies are used for this project?
 
-This project is built with:
+- Vite, TypeScript, React, shadcn-ui, Tailwind CSS (frontend)
+- Flask, Hugging Face Transformers (backend)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## Lovable Usage
 
-Simply open [Lovable](https://lovable.dev/projects/653957cd-f1a4-4bdb-8e52-84c439e11614) and click on Share -> Publish.
+You can continue editing this code in Lovable by visiting:  
+[https://lovable.dev/projects/653957cd-f1a4-4bdb-8e52-84c439e11614](https://lovable.dev/projects/653957cd-f1a4-4bdb-8e52-84c439e11614)
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## (Advanced) Using your own IDE
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+You may also open and edit the codebase in VS Code/GitHub Codespaces or your favorite text editor.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
