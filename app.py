@@ -35,6 +35,33 @@ except Exception as e:
     app.logger.error(f"Failed to load summarizer model: {e}")
     summarizer = None
 
+# Sample external "database" (in real life, use an actual DB)
+TRUSTED_NEWS_DOMAINS = {"bbc.co.uk", "nytimes.com", "reuters.com", "apnews.com", "npr.org", "theguardian.com"}
+UNTRUSTED_NEWS_DOMAINS = {"yourscvnews.com", "worldtruth.tv", "abcnews.com.co", "theonion.com"}  # Example satire/fake
+
+def domain_from_url(url: str) -> str:
+    from urllib.parse import urlparse
+    try:
+        domain = urlparse(url).netloc.lower()
+        domain = domain.lstrip('www.')
+        return domain
+    except Exception:
+        return ""
+
+def calculate_trust_score(domain: str) -> dict:
+    if not domain:
+        return {"score": 50, "status": "Unknown"}  # Can't tell, treat as neutral
+    if domain in TRUSTED_NEWS_DOMAINS:
+        return {"score": 95, "status": "Trusted"}
+    if domain in UNTRUSTED_NEWS_DOMAINS:
+        return {"score": 10, "status": "Untrusted"}
+    # Simple goldilocks rule for demo
+    if ".gov" in domain or ".edu" in domain:
+        return {"score": 90, "status": "Trusted"}
+    if ".co" in domain or ".blog" in domain:
+        return {"score": 30, "status": "Suspicious"}
+    return {"score": 60, "status": "Unknown"}
+
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({
@@ -69,16 +96,21 @@ def analyze_text():
             return jsonify({"error": "Missing 'text' field in request body"}), 400
 
         text = data['text'].strip()
-        if not text:
-            return jsonify({"error": "Text cannot be empty"}), 400
+        trust_info = {"score": 50, "status": "Unknown", "domain": None}
 
         # 1. Check if input is a URL
         url_pattern = re.compile(
             r'^(http|https)://[^\s/$.?#].[^\s]*$', re.IGNORECASE)
         is_url = url_pattern.match(text)
         is_plain_text = False  # we'll use this for the summary origin
+
         if is_url:
             try:
+                # Get news domain
+                domain = domain_from_url(text)
+                trust = calculate_trust_score(domain)
+                trust_info = {**trust, "domain": domain}
+
                 # Fetch page content
                 resp = requests.get(text, timeout=10)
                 if resp.status_code != 200:
@@ -153,7 +185,10 @@ def analyze_text():
                 "score": result['score'],
                 "wordCount": result['word_count'],
                 "text": text[:100] + "..." if len(text) > 100 else text,
-                "analysis_timestamp": datetime.now().isoformat()
+                "analysis_timestamp": datetime.now().isoformat(),
+                "trustScore": trust_info["score"],
+                "trustStatus": trust_info["status"],
+                "newsDomain": trust_info.get("domain", None)
             }
             if summary_error:
                 response["summary_error"] = summary_error
