@@ -1,4 +1,3 @@
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from transformers import pipeline
@@ -117,6 +116,11 @@ def analyze_text():
             r'^(http|https)://[^\s/$.?#].[^\s]*$', re.IGNORECASE)
         is_url = url_pattern.match(text)
         is_plain_text = False  # we'll use this for the summary origin
+
+        trust_score = None
+        trust_status = None
+        trust_reason = None
+
         if is_url:
             try:
                 # Fetch page content
@@ -144,6 +148,18 @@ def analyze_text():
                     }), 400
 
                 summary_input = article_text
+                domain = domain_from_url(text)
+                trust_info = calculate_trust_score(domain)
+                trust_score = trust_info["score"]
+                trust_status = trust_info["status"]
+                if trust_status == "Trusted":
+                    trust_reason = "This source is recognized as a reputable news outlet."
+                elif trust_status == "Untrusted":
+                    trust_reason = "This domain is on a known list of unreliable/fake news or satire sites."
+                elif trust_status == "Suspicious":
+                    trust_reason = "Caution: this domain is commonly used for blogs or alternative sources and may not be reliable."
+                else:
+                    trust_reason = "Source could not be confidently classified; exercise your own judgment."
                 text = article_text  # override input with fetched content
 
             except Exception as e:
@@ -152,7 +168,7 @@ def analyze_text():
                     "error": f"Unable to fetch article content from the provided URL: {str(e)}"
                 }), 400
         else:
-            # If input is not a URL, we process as normal text, but reject if input looks like a non-news random URL
+            # If not a URL, basic trust assignment: Unknown
             url_like = re.match(r'^.+\.[a-z]{2,}(/.*)?$', text)
             if url_like:
                 return jsonify({
@@ -160,6 +176,9 @@ def analyze_text():
                 }), 400
             is_plain_text = True
             summary_input = text
+            trust_status = "Unknown"
+            trust_score = 50
+            trust_reason = "No source website provided, so credibility cannot be determined."
 
         # Generate summary if summarizer is loaded and content is long enough
         summary_text = ""
@@ -193,12 +212,15 @@ def analyze_text():
                 "score": result['score'],
                 "wordCount": result['word_count'],
                 "text": text[:100] + "..." if len(text) > 100 else text,
-                "analysis_timestamp": datetime.now().isoformat()
+                "analysis_timestamp": datetime.now().isoformat(),
+                "trust_score": trust_score,
+                "trust_status": trust_status,
+                "trust_reason": trust_reason
             }
             if summary_error:
                 response["summary_error"] = summary_error
 
-            app.logger.info(f"Successfully analyzed text with sentiment: {result['sentiment']}")
+            app.logger.info(f"Successfully analyzed text with sentiment: {result['sentiment']} | Trust: {trust_status}")
             return jsonify(response)
 
         except Exception as e:

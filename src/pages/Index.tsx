@@ -20,6 +20,9 @@ interface AnalysisResult {
   confidence: number;
   keyTopics: string[];
   wordCount: number;
+  trust_score?: number;
+  trust_status?: string;
+  trust_reason?: string;
 }
 
 const Index = () => {
@@ -82,12 +85,15 @@ const Index = () => {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
       
-      // Only set fields for sentiment, confidence, keyTopics, wordCount – NOT summary
+      // Only set fields for sentiment, confidence, keyTopics, wordCount, trust info – NOT summary
       const result: AnalysisResult = {
         sentiment: data.sentiment || data.label || 'Unknown',
         confidence: data.confidence || Math.round((data.score || 0) * 100),
         keyTopics: data.keyTopics || ['General', 'News'],
         wordCount: data.wordCount || inputText.split(' ').filter(word => word.length > 0).length,
+        trust_score: data.trust_score,
+        trust_status: data.trust_status,
+        trust_reason: data.trust_reason,
       };
       
       setAnalysisResult(result);
@@ -196,6 +202,19 @@ const Index = () => {
       case 'negative': return 'bg-red-100 text-red-800 border-red-200';
       case 'neutral': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default: return 'bg-blue-100 text-blue-800 border-blue-200';
+    }
+  };
+
+  const getTrustBadgeStyle = (status: string | undefined) => {
+    switch ((status || '').toLowerCase()) {
+      case "trusted":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "untrusted":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "suspicious":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
 
@@ -360,6 +379,26 @@ pauseBetweenAnimations={1}
                       <span className="text-sm text-gray-600">
                         {analysisResult.confidence}% confidence
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Credibility / Trust Score */}
+                  <div className="p-4 rounded-lg bg-gray-50 border">
+                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                      <span>Source Credibility</span>
+                      {analysisResult.trust_status && (
+                        <Badge className={`text-xs px-2 py-0.5 font-medium ${getTrustBadgeStyle(analysisResult.trust_status)}`}>
+                          {analysisResult.trust_status}
+                        </Badge>
+                      )}
+                    </h3>
+                    {typeof analysisResult.trust_score === "number" && (
+                      <div className="text-2xl font-bold text-blue-800 mb-1">
+                        {analysisResult.trust_score} / 100
+                      </div>
+                    )}
+                    <div className="text-sm text-gray-600">
+                      {analysisResult.trust_reason || "Credibility could not be determined for this article."}
                     </div>
                   </div>
 
