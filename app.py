@@ -27,7 +27,9 @@ try:
     classifier = FakeNewsClassifier()
     app.logger.info("Sentiment analysis model loaded successfully")
 except Exception as e:
+    import traceback
     app.logger.error(f"Failed to load model: {e}")
+    app.logger.error(traceback.format_exc())
     classifier = None
 
 # Initialize summarization model at startup
@@ -35,7 +37,9 @@ try:
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
     app.logger.info("Summarization model loaded successfully")
 except Exception as e:
+    import traceback
     app.logger.error(f"Failed to load summarizer model: {e}")
+    app.logger.error(traceback.format_exc())
     summarizer = None
 
 # Sample external "database" (in real life, use an actual DB)
@@ -380,4 +384,9 @@ def summarize_text():
         }), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    try:
+        app.run(host='0.0.0.0', port=5000, debug=True)
+    except Exception as e:
+        import traceback
+        print(f"FATAL ERROR DURING FLASK STARTUP: {e}")
+        print(traceback.format_exc())
