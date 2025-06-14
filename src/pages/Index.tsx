@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,24 +26,49 @@ const Index = () => {
 
     setIsAnalyzing(true);
     
-    // Simulate API call with mock analysis
-    setTimeout(() => {
-      const mockResult = {
-        sentiment: Math.random() > 0.5 ? 'Positive' : Math.random() > 0.5 ? 'Negative' : 'Neutral',
-        confidence: Math.floor(Math.random() * 30 + 70),
-        keyTopics: ['Technology', 'Business', 'Innovation'],
-        summary: 'This article discusses recent developments in the technology sector with a focus on business implications and market trends.',
-        wordCount: inputText.split(' ').length,
+    try {
+      const response = await fetch('/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: inputText
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Transform the response to match our expected format
+      const result = {
+        sentiment: data.label || 'Unknown',
+        confidence: Math.round((data.score || 0) * 100),
+        keyTopics: data.keyTopics || ['Technology', 'Business', 'Innovation'],
+        summary: data.summary || 'Analysis completed successfully.',
+        wordCount: inputText.split(' ').filter(word => word.length > 0).length,
       };
       
-      setAnalysisResult(mockResult);
-      setIsAnalyzing(false);
+      setAnalysisResult(result);
       
       toast({
         title: "Analysis Complete",
         description: "Your news article has been successfully analyzed.",
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Error analyzing text:', error);
+      
+      toast({
+        title: "Analysis Failed",
+        description: "There was an error analyzing your text. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const getSentimentColor = (sentiment: string) => {
