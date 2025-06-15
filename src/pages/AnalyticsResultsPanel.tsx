@@ -146,51 +146,69 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
 
         {analysisResult && !error && (
           <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Trust Score & Authenticity */}
-            <div className="p-4 rounded-lg bg-accent border border-accent text-foreground transition-colors">
-              <h3 className="font-semibold text-foreground mb-3">Authenticity Assessment</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center justify-between">
+            {/* AUTHENTICITY ASSESSMENT CARD — refined style */}
+            <div className="p-6 rounded-xl bg-[#1b2538] border border-[#2c3752] text-foreground shadow-lg transition-colors relative">
+              <h3 className="font-semibold text-foreground mb-4 text-lg">
+                Authenticity Assessment
+              </h3>
+              <div className="flex items-center flex-wrap gap-x-8 gap-y-3 mb-1">
+                {/* Classification */}
+                <div className="flex items-center gap-2 min-w-[160px]">
                   <span className="text-sm text-muted-foreground">Classification:</span>
-                  <Badge className={`px-3 py-1 text-sm font-medium ${getRealFakeColor(analysisResult.realOrFake || "Unknown")}`}>
+                  <Badge
+                    className={`px-3 py-1 text-sm font-semibold rounded-2xl border-2 border-[#2c3752] bg-[#2c3752] text-blue-200 ${
+                      (analysisResult.realOrFake || "Unknown").toLowerCase() === "unknown"
+                        ? "bg-[#242424] text-[#b2b5b5] border-[#44474d]"
+                        : ""
+                    }`}
+                  >
                     {analysisResult.realOrFake || "Unknown"}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between">
+                {/* Trust Score Badge */}
+                <div className="flex items-center gap-2 min-w-[150px]">
                   <span className="text-sm text-muted-foreground">Trust Score:</span>
-                  <Badge className={`px-3 py-1 text-sm font-medium ${getTrustScoreColor(analysisResult.trustScore || 50)}`}>
+                  <span
+                    className="inline-flex items-center font-semibold px-4 py-1 rounded-full text-[#33280b] border border-yellow-300"
+                    style={{
+                      background: "linear-gradient(90deg, #ffd700 0%, #ffbb33 100%)",
+                      fontSize: "1rem",
+                      letterSpacing: "0.02em"
+                    }}
+                  >
                     {analysisResult.trustScore || 50}/100
-                  </Badge>
+                  </span>
                 </div>
+                {/* Confidence for Fake/Real if meaningful */}
+                {analysisResult.fakeConfidence && analysisResult.fakeConfidence > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Confidence:</span>
+                    <span className="font-semibold text-[#aaa]">{analysisResult.fakeConfidence}%</span>
+                  </div>
+                )}
               </div>
-              {analysisResult.fakeConfidence && analysisResult.fakeConfidence > 0 && (
-                <div className="mt-2 text-xs text-muted-foreground">
-                  Detection confidence: {analysisResult.fakeConfidence}%
-                </div>
-              )}
-              {/* NEW: Show fallback/unknown explanation when classification is "Unknown" */}
+              {/* NEW: Show fallback/unknown explanation in matching style */}
               {analysisResult.realOrFake?.toLowerCase() === "unknown" && (
-                <div className="mt-4 p-3 rounded bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100 text-sm">
-                  <strong>Unable to determine authenticity.</strong>
-                  <br />
-                  The AI model could not classify this article as "Fake" or "Real."
-                  <br />
-                  {fallbackInfo && (
-                    <div className="mt-2">
-                      <span className="font-medium">Reason:</span>{" "}
-                      {(fallbackInfo as string).replace(/\.$/, '')}.
-                    </div>
-                  )}
-                  {!fallbackInfo && (
-                    <span>
-                      This usually happens if your backend could not load a news authenticity model, or the result is too uncertain.<br />
-                      Please check your backend logs for model loading errors.
-                    </span>
-                  )}
+                <div
+                  className="mt-5 w-full p-4 rounded-lg"
+                  style={{
+                    backgroundColor: "#88521d",
+                    color: "#fff8e1",
+                    fontWeight: 500,
+                    border: "1.5px solid #b37829",
+                  }}
+                >
+                  <div className="mb-1 text-base font-bold text-white">Unable to determine authenticity.</div>
+                  <div className="text-sm font-medium leading-relaxed text-[#fff8e1]">
+                    The AI model could not classify this article as "Fake" or "Real."
+                    <br />
+                    This usually happens if your backend could not load a news authenticity model, or the result is too uncertain.
+                    <br />
+                    Please check your backend logs for model loading errors.
+                  </div>
                 </div>
               )}
             </div>
-
             {/* Sentiment Analysis */}
             <div className="p-4 rounded-lg bg-accent border border-accent text-foreground transition-colors">
               <h3 className="font-semibold text-foreground mb-3">Sentiment Analysis</h3>
