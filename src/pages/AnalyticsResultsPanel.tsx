@@ -78,7 +78,7 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
 
   return (
     <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm transition-colors">
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-4 sticky top-0 z-10 bg-card/80 backdrop-blur">
         <CardTitle className="flex items-center text-2xl text-foreground">
           <FileText className="h-6 w-6 text-blue-600 mr-2" />
           Analytics Results
@@ -87,8 +87,9 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
           Sentiment analysis, authenticity check, and key insights
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="w-full max-h-[70vh] p-6">
+      {/* Scroll everything below header */}
+      <ScrollArea className="w-full max-h-[70vh] p-6">
+        <CardContent className="p-0">
           {parseWarning && (
             <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 rounded">
               <div className="font-bold mb-1">⚠️ Article Extraction Warning</div>
@@ -263,8 +264,8 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
               </div>
             </div>
           )}
-        </ScrollArea>
-      </CardContent>
+        </CardContent>
+      </ScrollArea>
     </Card>
   );
 };
