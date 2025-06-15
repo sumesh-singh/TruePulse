@@ -4,7 +4,7 @@ import TrueFocus from "./TrueFocus";
 import { useNewsAnalysis } from "../hooks/useNewsAnalysis";
 import ArticleInputPanel from "./ArticleInputPanel";
 import AnalyticsResultsPanel from "./AnalyticsResultsPanel";
-import ThemeToggle from "@/components/ThemeToggle";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 const Index = () => {
   const [inputText, setInputText] = useState('');
@@ -65,7 +65,7 @@ const Index = () => {
             </div>
             {/* Theme toggle on the right */}
             <div className="ml-4">
-              <ThemeToggle />
+              <ThemeSwitcher />
             </div>
           </div>
         </div>
