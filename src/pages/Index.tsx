@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { TrendingUp } from "lucide-react";
 import TrueFocus from "./TrueFocus";
@@ -13,10 +14,7 @@ const Index = () => {
     analysisResult,
     similarArticles,
     error,
-    summaryResult,
-    isSummarizing,
     analyzeText,
-    summarizeText,
     setError,
     setSimilarArticles,
   } = useNewsAnalysis();
@@ -33,15 +31,6 @@ const Index = () => {
       return;
     }
     analyzeText(inputText);
-  };
-
-  // When user wants to summarize
-  const handleSummarize = () => {
-    if (!inputText.trim()) {
-      setError("Please enter a news article or snippet to summarize.");
-      return;
-    }
-    summarizeText(inputText);
   };
 
   return (
@@ -82,10 +71,7 @@ const Index = () => {
             inputText={inputText}
             setInputText={setInputText}
             onAnalyze={handleAnalyze}
-            onSummarize={handleSummarize}
             isAnalyzing={isAnalyzing}
-            isSummarizing={isSummarizing}
-            summaryResult={summaryResult}
           />
           <AnalyticsResultsPanel
             analysisResult={analysisResult}
