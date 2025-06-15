@@ -126,11 +126,14 @@ def analyze_text():
                 "score": result['score'],
                 "wordCount": result['word_count'],
                 "text": text[:100] + "..." if len(text) > 100 else text,
-                "analysis_timestamp": datetime.now().isoformat()
+                "analysis_timestamp": datetime.now().isoformat(),
+                "real_or_fake": result['real_or_fake'],
+                "fake_confidence": result['fake_confidence'],
+                "trust_score": result['trust_score']
             }
             if summary_error:
                 response["summary_error"] = summary_error
-            app.logger.info(f"Successfully analyzed text with sentiment: {result['sentiment']}")
+            app.logger.info(f"Successfully analyzed text with sentiment: {result['sentiment']}, authenticity: {result['real_or_fake']}")
             return jsonify(response)
         except Exception as e:
             app.logger.error(f"Error during sentiment analysis: {e}")
@@ -144,4 +147,3 @@ def analyze_text():
             "error": f"Internal server error: {str(e)}",
             "details": "An unexpected error occurred on the server."
         }), 500
-

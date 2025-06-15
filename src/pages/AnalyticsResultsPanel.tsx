@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +20,20 @@ const getSentimentColor = (sentiment: string) => {
   }
 };
 
+const getTrustScoreColor = (score: number) => {
+  if (score >= 70) return "bg-green-100 text-green-800 border-green-200";
+  if (score >= 40) return "bg-yellow-100 text-yellow-800 border-yellow-200";
+  return "bg-red-100 text-red-800 border-red-200";
+};
+
+const getRealFakeColor = (classification: string) => {
+  switch (classification.toLowerCase()) {
+    case "real": return "bg-green-100 text-green-800 border-green-200";
+    case "fake": return "bg-red-100 text-red-800 border-red-200";
+    default: return "bg-gray-100 text-gray-800 border-gray-200";
+  }
+};
+
 const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
   analysisResult, similarArticles, error, isAnalyzing
 }) => {
@@ -32,7 +45,7 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
           Analytics Results
         </CardTitle>
         <CardDescription className="text-gray-600">
-          Sentiment analysis and key insights
+          Sentiment analysis, authenticity check, and key insights
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -73,6 +86,30 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
 
         {analysisResult && !error && (
           <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Trust Score & Authenticity */}
+            <div className="p-4 rounded-lg bg-gray-50 border">
+              <h3 className="font-semibold text-gray-800 mb-3">Authenticity Assessment</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Classification:</span>
+                  <Badge className={`px-3 py-1 text-sm font-medium ${getRealFakeColor(analysisResult.realOrFake || "Unknown")}`}>
+                    {analysisResult.realOrFake || "Unknown"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Trust Score:</span>
+                  <Badge className={`px-3 py-1 text-sm font-medium ${getTrustScoreColor(analysisResult.trustScore || 50)}`}>
+                    {analysisResult.trustScore || 50}/100
+                  </Badge>
+                </div>
+              </div>
+              {analysisResult.fakeConfidence && analysisResult.fakeConfidence > 0 && (
+                <div className="mt-2 text-xs text-gray-500">
+                  Detection confidence: {analysisResult.fakeConfidence}%
+                </div>
+              )}
+            </div>
+
             {/* Sentiment Analysis */}
             <div className="p-4 rounded-lg bg-gray-50 border">
               <h3 className="font-semibold text-gray-800 mb-3">Sentiment Analysis</h3>
@@ -125,15 +162,15 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
               </div>
             )}
 
-            {/* Statistics */}
+            {/* Updated Statistics */}
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
                 <div className="text-2xl font-bold text-blue-600">{analysisResult.wordCount}</div>
                 <div className="text-sm text-gray-600">Words Analyzed</div>
               </div>
-              <div className="p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
-                <div className="text-2xl font-bold text-green-600">{analysisResult.confidence}%</div>
-                <div className="text-sm text-gray-600">Confidence Score</div>
+              <div className="p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100">
+                <div className="text-2xl font-bold text-emerald-600">{analysisResult.trustScore || 50}</div>
+                <div className="text-sm text-gray-600">Trust Score</div>
               </div>
             </div>
           </div>

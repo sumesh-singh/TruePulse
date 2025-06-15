@@ -17,6 +17,9 @@ export interface AnalysisResult {
   confidence: number;
   keyTopics: string[];
   wordCount: number;
+  realOrFake?: string;      // Added: real/fake classification
+  fakeConfidence?: number;  // Added: confidence in fake detection
+  trustScore?: number;      // Added: overall trust score
 }
 
 export function useNewsAnalysis() {
@@ -57,12 +60,15 @@ export function useNewsAnalysis() {
         confidence: data.confidence || Math.round((data.score || 0) * 100),
         keyTopics: data.keyTopics || ["General", "News"],
         wordCount: data.wordCount || inputText.split(' ').filter(word => word.length > 0).length,
+        realOrFake: data.real_or_fake || "Unknown",
+        fakeConfidence: data.fake_confidence || 0,
+        trustScore: data.trust_score || 50,
       });
 
       fetchSimilarArticles(inputText);
       toast({
         title: "Analysis Complete",
-        description: `Sentiment: ${data.sentiment || data.label || "Unknown"}`,
+        description: `Sentiment: ${data.sentiment || data.label || "Unknown"}, Authenticity: ${data.real_or_fake || "Unknown"}`,
       });
     } catch (err: any) {
       const errorMessage = err?.message || "Unknown error occurred";
