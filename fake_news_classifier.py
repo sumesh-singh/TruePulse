@@ -44,7 +44,7 @@ class FakeNewsClassifier:
             logger.info("Loading fake news detection model...")
             self.fake_news_detector = pipeline(
                 'text-classification',
-                model='mrm8488/bert-tiny-finetuned-fake-news-detection',
+                model='akhooli/fake-news-detection-bert',
                 return_all_scores=True
             )
             logger.info("✓ Fake news detection model loaded successfully")
@@ -126,26 +126,38 @@ class FakeNewsClassifier:
             fake_news_result = None
             real_or_fake = "Unknown"
             fake_confidence = 0
-            
+
             if self.fake_news_detector is not None:
                 try:
                     fake_results = self.fake_news_detector(text)
                     if isinstance(fake_results, list) and len(fake_results) > 0 and isinstance(fake_results[0], list):
                         fake_results = fake_results[0]
-                    
-                    fake_news_result = max(fake_results, key=lambda x: x['score'])
-                    
+
+                    # Find scores for "REAL" and "FAKE"
+                    label_scores = {r['label'].upper(): r['score'] for r in fake_results}
+                    best_label = max(label_scores, key=label_scores.get)
+                    best_score = label_scores[best_label]
+                    # Find second best
+                    second_best_label = min(label_scores, key=label_scores.get)
+                    second_best_score = label_scores[second_best_label]
+
                     # Map fake news labels
                     fake_label_mapping = {
                         'FAKE': 'Fake',
                         'REAL': 'Real',
-                        'LABEL_0': 'Real',  # Often real is label 0
-                        'LABEL_1': 'Fake'   # Often fake is label 1
+                        'LABEL_0': 'Real',  # Sometimes real is label 0
+                        'LABEL_1': 'Fake'   # Sometimes fake is label 1
                     }
-                    
-                    real_or_fake = fake_label_mapping.get(fake_news_result['label'].upper(), "Unknown")
-                    fake_confidence = round(fake_news_result['score'] * 100, 1)
-                    
+                    # Decision: if "REAL" and "FAKE" scores are within 0.10, call it "Uncertain"
+                    if abs(label_scores.get("REAL", 0) - label_scores.get("FAKE", 0)) < 0.10:
+                        real_or_fake = "Uncertain"
+                        fake_confidence = round(max(label_scores.get("REAL", 0), label_scores.get("FAKE", 0)) * 100, 1)
+                    else:
+                        real_or_fake = fake_label_mapping.get(best_label, "Unknown")
+                        fake_confidence = round(best_score * 100, 1)
+                    # Save the best-scoring entry for trust score (original logic)
+                    fake_news_result = max(fake_results, key=lambda x: x['score'])
+
                 except Exception as e:
                     logger.error(f"Error during fake news detection: {e}")
                     real_or_fake = "Unknown"
