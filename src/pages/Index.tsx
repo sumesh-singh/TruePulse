@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TrendingUp } from "lucide-react";
 import TrueFocus from "./TrueFocus";
 import { useNewsAnalysis } from "../hooks/useNewsAnalysis";
@@ -14,10 +13,18 @@ const Index = () => {
     analysisResult,
     similarArticles,
     error,
+    summaryResult,
+    isSummarizing,
     analyzeText,
+    summarizeText,
     setError,
     setSimilarArticles,
   } = useNewsAnalysis();
+
+  // Always set the page title to "TruePulse"
+  useEffect(() => {
+    document.title = "TruePulse";
+  }, []);
 
   // When user submits for analysis
   const handleAnalyze = () => {
@@ -26,6 +33,15 @@ const Index = () => {
       return;
     }
     analyzeText(inputText);
+  };
+
+  // When user wants to summarize
+  const handleSummarize = () => {
+    if (!inputText.trim()) {
+      setError("Please enter a news article or snippet to summarize.");
+      return;
+    }
+    summarizeText(inputText);
   };
 
   return (
@@ -66,7 +82,10 @@ const Index = () => {
             inputText={inputText}
             setInputText={setInputText}
             onAnalyze={handleAnalyze}
+            onSummarize={handleSummarize}
             isAnalyzing={isAnalyzing}
+            isSummarizing={isSummarizing}
+            summaryResult={summaryResult}
           />
           <AnalyticsResultsPanel
             analysisResult={analysisResult}
@@ -81,4 +100,3 @@ const Index = () => {
 };
 
 export default Index;
-
