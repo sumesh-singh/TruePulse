@@ -110,8 +110,20 @@ export function useNewsAnalysis() {
       });
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
+        // Show the actual response text to the user
         const responseText = await response.text();
-        throw new Error(`Server returned ${contentType}. Response: ${responseText.substring(0, 100)}...`);
+        let errorMessage = "Server returned an unexpected response";
+        // Try to extract a meaningful message
+        if (responseText) {
+          // Attempt to extract JSON error from HTML
+          const match = responseText.match(/"error"\s*:\s*"([^"]+)"/);
+          if (match && match[1]) {
+            errorMessage = match[1];
+          } else {
+            errorMessage = responseText.substring(0, 200) + (responseText.length > 200 ? "..." : "");
+          }
+        }
+        throw new Error(errorMessage);
       }
       const data = await response.json();
       if (!response.ok) {
