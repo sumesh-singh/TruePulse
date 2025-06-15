@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -7,6 +8,8 @@ export interface SimilarArticle {
   source?: string;
   published_at?: string;
   description?: string;
+  trust_score?: number;   // Added: trust score (0-100)
+  trust_status?: string;  // Added: trust label e.g. "Trusted"
 }
 
 export interface AnalysisResult {

@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime, timedelta
 import requests
-from utils import extract_keywords
+from utils import extract_keywords, domain_from_url, calculate_trust_score
 
 similar_bp = Blueprint('similar', __name__)
 
@@ -78,12 +78,16 @@ def find_similar_articles():
         articles = []
         for article in news_data.get('articles', []):
             if article.get('title') and article.get('url'):
+                domain = domain_from_url(article['url'])
+                trust_info = calculate_trust_score(domain)
                 articles.append({
                     'title': article['title'],
                     'url': article['url'],
                     'source': article.get('source', {}).get('name', 'Unknown'),
                     'published_at': article.get('publishedAt', ''),
-                    'description': article.get('description', '')[:200] + '...' if article.get('description') and len(article.get('description', '')) > 200 else article.get('description', '')
+                    'description': article.get('description', '')[:200] + '...' if article.get('description') and len(article.get('description', '')) > 200 else article.get('description', ''),
+                    'trust_score': trust_info.get('score', 50),
+                    'trust_status': trust_info.get('status', 'Unknown'),
                 })
 
         return jsonify({
