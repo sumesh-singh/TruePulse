@@ -20,6 +20,9 @@ export interface AnalysisResult {
   fakeConfidence?: number;  // Added: confidence in fake detection
   trustScore?: number;      // Added: overall trust score
   reasoning?: string;       // Added: AI reasoning explanation
+  fallbackInfo?: string;    // Added: fallback information
+  extractedText?: string;  // Added: the raw, extracted/analyzed text
+  parseWarning?: string;   // Added: UI warning if extraction was sketchy
 }
 
 export function useNewsAnalysis() {
@@ -66,6 +69,8 @@ export function useNewsAnalysis() {
         trustScore: data.trust_score || 50,
         reasoning: data.reasoning || data.summary || "No reasoning provided",
         ...(data.fallback_info !== undefined ? { fallbackInfo: data.fallback_info } : {}),
+        ...(data.extracted_text !== undefined ? { extractedText: data.extracted_text } : {}),
+        ...(data.parse_warning !== undefined ? { parseWarning: data.parse_warning } : {}),
       });
 
       // Fetch similar articles after successful analysis

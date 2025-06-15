@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +64,17 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
       ? (analysisResult as any).fallbackInfo
       : undefined;
 
+  // Show the "extracted" text, if available
+  const analyzedText =
+    analysisResult && typeof analysisResult === "object" && "extractedText" in analysisResult
+      ? analysisResult.extractedText
+      : "";
+
+  const parseWarning =
+    analysisResult && typeof analysisResult === "object" && "parseWarning" in analysisResult
+      ? analysisResult.parseWarning
+      : "";
+
   return (
     <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm transition-colors">
       <CardHeader className="pb-4">
@@ -77,6 +87,13 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {parseWarning && (
+          <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 rounded">
+            <div className="font-bold mb-1">⚠️ Article Extraction Warning</div>
+            <div className="text-sm">{parseWarning}</div>
+          </div>
+        )}
+
         {error && (
           <div className="text-center py-8">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-500" />
