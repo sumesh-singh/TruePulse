@@ -1,5 +1,10 @@
+from flask import Blueprint, request, jsonify, current_app
+from datetime import datetime
+import re
+import requests
+from bs4 import BeautifulSoup
 
-# ... keep existing code (imports, blueprint setup, etc) the same ...
+analyze_bp = Blueprint('analyze', __name__)
 
 @analyze_bp.route('/analyze', methods=['POST'])
 def analyze_text():
@@ -7,8 +12,6 @@ def analyze_text():
     classifier = app.config.get('classifier')
     summarizer = app.config.get('summarizer')
     try:
-        # ... keep existing error/model checks the same ...
-
         data = request.get_json()
         if not data or 'text' not in data:
             app.logger.error("Missing 'text' field in request")
