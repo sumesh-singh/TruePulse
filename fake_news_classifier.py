@@ -127,6 +127,25 @@ class FakeNewsClassifier:
                 'LABEL_2': 'Neutral'
             }
             sentiment = label_mapping.get(best_sentiment['label'].upper(), best_sentiment['label'])
+            sentiment_confidence = round(best_sentiment['score'] * 100, 1)
+
+            # --- HONEST SENTIMENT SANITY CHECK ---
+            # If tragic/negative event keywords present, but sentiment model picked "Positive", override to Negative/Uncertain
+            tragic_keywords = [
+                "crash", "accident", "death", "dead", "killed", "fatal", "disaster", "fire", "injury",
+                "injured", "collapse", "tragedy", "victim", "explosion", "fatality", "emergency", "mayday", "plane crash"
+            ]
+            lower_text = text.lower()
+            if sentiment == "Positive":
+                for kw in tragic_keywords:
+                    # For extra reliability, match on word boundary or near-boundary
+                    if f" {kw} " in f" {lower_text} " or kw in lower_text:
+                        print(f"OVERRIDE: Sentiment set to 'Negative' because word '{kw}' found in text.")
+                        # Option: You could choose "Uncertain" if you want softer handling
+                        sentiment = "Negative"
+                        sentiment_confidence = min(sentiment_confidence, 60.0)  # Don't allow high confidence for forced overrides
+                        break
+
             # Debug log
             print("Sentiment model raw results:", sentiment_results)
             print("Best sentiment:", best_sentiment['label'], "->", sentiment, "score:", best_sentiment['score'])
@@ -201,7 +220,7 @@ class FakeNewsClassifier:
             # Calculate trust score more honestly
             trust_score = self.calculate_trust_score(fake_news_result, {
                 'sentiment': sentiment,
-                'confidence': round(best_sentiment['score']*100,1)
+                'confidence': sentiment_confidence
             }, fallback_reason=fallback_reason)
 
             # Extract key topics (as before, could be improved with real extractor)
@@ -226,7 +245,7 @@ class FakeNewsClassifier:
                 'label': sentiment,
                 'score': round(best_sentiment['score'], 4),
                 'sentiment': sentiment,
-                'confidence': round(best_sentiment['score'] * 100, 1),
+                'confidence': sentiment_confidence,
                 'real_or_fake': real_or_fake,
                 'fake_confidence': fake_confidence,
                 'trust_score': trust_score,
