@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -66,6 +65,7 @@ export function useNewsAnalysis() {
         fakeConfidence: data.fake_confidence || 0,
         trustScore: data.trust_score || 50,
         reasoning: data.reasoning || data.summary || "No reasoning provided",
+        ...(data.fallback_info !== undefined ? { fallbackInfo: data.fallback_info } : {}),
       });
 
       // Fetch similar articles after successful analysis

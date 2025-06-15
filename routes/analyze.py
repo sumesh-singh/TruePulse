@@ -129,7 +129,8 @@ def analyze_text():
                 "analysis_timestamp": datetime.now().isoformat(),
                 "real_or_fake": result['real_or_fake'],
                 "fake_confidence": result['fake_confidence'],
-                "trust_score": result['trust_score']
+                "trust_score": result['trust_score'],
+                "fallback_info": result.get('fallback_info', None)   # <-- Add fallback info for frontend
             }
             if summary_error:
                 response["summary_error"] = summary_error
