@@ -44,8 +44,8 @@ Do all setup steps in your own virtual environment (venv/conda for Python, and n
 
 **a) Clone this repository**
 ```sh
-git clone <YOUR_GIT_URL>
-cd <YOUR_PROJECT_NAME>
+git clone https://github.com/sumesh-singh/TruePulse.git
+cd TruePulse
 ```
 
 **b) Install backend dependencies**
