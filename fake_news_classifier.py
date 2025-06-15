@@ -18,7 +18,6 @@ class FakeNewsClassifier:
         """Load the HuggingFace transformers pipelines for sentiment analysis and fake news detection"""
         try:
             logger.info("Loading sentiment analysis model...")
-            # Use a proper sentiment analysis model
             self.classifier = pipeline(
                 'sentiment-analysis',
                 model='cardiffnlp/twitter-roberta-base-sentiment-latest',
@@ -27,7 +26,6 @@ class FakeNewsClassifier:
             logger.info("✓ Sentiment analysis model loaded successfully")
         except Exception as e:
             logger.error(f"✗ Failed to load sentiment model: {e}")
-            # Fallback to a basic sentiment model
             try:
                 self.classifier = pipeline(
                     'sentiment-analysis',
@@ -39,28 +37,39 @@ class FakeNewsClassifier:
                 logger.error(f"✗ Failed to load fallback sentiment model: {fallback_error}")
                 self.classifier = None
 
-        # Load fake news detection model (UPDATED HERE)
+        # Load fake news detection model (switch to winterForestStump/Roberta-fake-news-detector)
         try:
-            logger.info("Loading fake news detection model...")
+            logger.info("Loading fake news detection model: winterForestStump/Roberta-fake-news-detector ...")
             self.fake_news_detector = pipeline(
                 'text-classification',
-                model='akhooli/fake-news-detection-bert',
+                model='winterForestStump/Roberta-fake-news-detector',
                 return_all_scores=True
             )
-            logger.info("✓ Fake news detection model loaded successfully")
+            logger.info("✓ Fake news detection model loaded: winterForestStump/Roberta-fake-news-detector")
         except Exception as e:
-            logger.error(f"✗ Failed to load fake news detection model: {e}")
-            # Fallback to a simpler approach
+            logger.error(f"✗ Failed to load winterForestStump/Roberta-fake-news-detector: {e}")
+            # Fallback to previous model (akhooli/fake-news-detection-bert)
             try:
+                logger.info("Loading fake news detection model: akhooli/fake-news-detection-bert ...")
                 self.fake_news_detector = pipeline(
                     'text-classification',
-                    model='distilbert-base-uncased-finetuned-sst-2-english',
+                    model='akhooli/fake-news-detection-bert',
                     return_all_scores=True
                 )
-                logger.info("✓ Fallback fake news detection model loaded successfully")
+                logger.info("✓ Fallback fake news detection model loaded: akhooli/fake-news-detection-bert")
             except Exception as fallback_error:
-                logger.error(f"✗ Failed to load fallback fake news detection model: {fallback_error}")
-                self.fake_news_detector = None
+                logger.error(f"✗ Failed to load fallback fake news detection model akhooli/fake-news-detection-bert: {fallback_error}")
+                # Final fallback
+                try:
+                    self.fake_news_detector = pipeline(
+                        'text-classification',
+                        model='distilbert-base-uncased-finetuned-sst-2-english',
+                        return_all_scores=True
+                    )
+                    logger.info("✓ Fallback fake news detection model loaded: distilbert-base-uncased-finetuned-sst-2-english")
+                except Exception as second_fallback_error:
+                    logger.error(f"✗ Failed to load fallback fake news detection model distilbert-base-uncased-finetuned-sst-2-english: {second_fallback_error}")
+                    self.fake_news_detector = None
 
     def calculate_trust_score(self, fake_news_result, sentiment_result, fallback_reason=None):
         """Calculate a trust score based on fake news detection and sentiment analysis (more nuanced)"""
