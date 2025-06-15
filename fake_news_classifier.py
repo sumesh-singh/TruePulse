@@ -1,4 +1,3 @@
-
 from transformers import pipeline
 import logging
 
@@ -90,7 +89,7 @@ class FakeNewsClassifier:
             text (str): The text to analyze
 
         Returns:
-            dict: Contains sentiment analysis results, fake news detection, and trust score
+            dict: Contains sentiment analysis results, fake news detection, trust score, AND reasoning
         """
         if self.classifier is None:
             raise RuntimeError(
@@ -102,7 +101,6 @@ class FakeNewsClassifier:
         try:
             # Get sentiment analysis results
             sentiment_results = self.classifier(text)
-
             # If result is a list of lists (when return_all_scores=True), pick the first element
             if isinstance(sentiment_results, list) and len(sentiment_results) > 0 and isinstance(sentiment_results[0], list):
                 sentiment_results = sentiment_results[0]
@@ -122,10 +120,11 @@ class FakeNewsClassifier:
 
             sentiment = label_mapping.get(best_sentiment['label'].upper(), best_sentiment['label'])
 
-            # Perform fake news detection
+            # Perform fake news detection with reasoning
             fake_news_result = None
             real_or_fake = "Unknown"
             fake_confidence = 0
+            reasoning = ""
 
             if self.fake_news_detector is not None:
                 try:
@@ -133,28 +132,51 @@ class FakeNewsClassifier:
                     if isinstance(fake_results, list) and len(fake_results) > 0 and isinstance(fake_results[0], list):
                         fake_results = fake_results[0]
 
-                    # Find scores for "REAL" and "FAKE"
                     label_scores = {r['label'].upper(): r['score'] for r in fake_results}
                     best_label = max(label_scores, key=label_scores.get)
                     best_score = label_scores[best_label]
-                    # Find second best
-                    second_best_label = min(label_scores, key=label_scores.get)
-                    second_best_score = label_scores[second_best_label]
+                    # Find second best; guard for dict with only one key
+                    second_best_label = None
+                    second_best_score = None
+                    if len(label_scores) > 1:
+                        second_best_label = min(label_scores, key=label_scores.get)
+                        second_best_score = label_scores[second_best_label]
 
-                    # Map fake news labels
                     fake_label_mapping = {
                         'FAKE': 'Fake',
                         'REAL': 'Real',
                         'LABEL_0': 'Real',  # Sometimes real is label 0
                         'LABEL_1': 'Fake'   # Sometimes fake is label 1
                     }
-                    # Decision: if "REAL" and "FAKE" scores are within 0.10, call it "Uncertain"
+                    # Reasoning field defaults
+                    reasoning = ""
+
+                    # If close scores, uncertain
                     if abs(label_scores.get("REAL", 0) - label_scores.get("FAKE", 0)) < 0.10:
                         real_or_fake = "Uncertain"
                         fake_confidence = round(max(label_scores.get("REAL", 0), label_scores.get("FAKE", 0)) * 100, 1)
+                        reasoning = (
+                            "This news is classified as 'Uncertain' because the model scores for both 'Real' and 'Fake' are close "
+                            f"({round(label_scores.get('REAL',0)*100,1)}% vs {round(label_scores.get('FAKE',0)*100,1)}%). "
+                            "This means the model is not confident in its classification."
+                        )
                     else:
                         real_or_fake = fake_label_mapping.get(best_label, "Unknown")
                         fake_confidence = round(best_score * 100, 1)
+                        if real_or_fake == "Fake":
+                            reasoning = (
+                                f"The article is classified as 'Fake' because the model assigned a high probability ({fake_confidence}%) "
+                                "to the 'Fake' label compared to 'Real'."
+                            )
+                        elif real_or_fake == "Real":
+                            reasoning = (
+                                f"The article is classified as 'Real' because the model assigned a high probability ({fake_confidence}%) "
+                                "to the 'Real' label compared to 'Fake'."
+                            )
+                        else:
+                            reasoning = (
+                                "The authenticity classifier could not assign a clear label."
+                            )
                     # Save the best-scoring entry for trust score (original logic)
                     fake_news_result = max(fake_results, key=lambda x: x['score'])
 
@@ -162,6 +184,7 @@ class FakeNewsClassifier:
                     logger.error(f"Error during fake news detection: {e}")
                     real_or_fake = "Unknown"
                     fake_confidence = 0
+                    reasoning = "The AI system encountered an error when analyzing authenticity."
 
             # Calculate trust score
             trust_score = self.calculate_trust_score(fake_news_result, {
@@ -194,6 +217,7 @@ class FakeNewsClassifier:
                 'real_or_fake': real_or_fake,
                 'fake_confidence': fake_confidence,
                 'trust_score': trust_score,
+                'reasoning': reasoning,  # <--- added explanation
                 'keyTopics': key_topics,
                 'summary': summary,
                 'all_scores': [
@@ -210,4 +234,3 @@ class FakeNewsClassifier:
         except Exception as e:
             logger.error(f"Error during classification: {e}")
             raise RuntimeError(f"Classification failed: {e}")
-
