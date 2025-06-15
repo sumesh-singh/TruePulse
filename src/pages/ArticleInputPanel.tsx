@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,10 +8,7 @@ interface ArticleInputPanelProps {
   inputText: string;
   setInputText: (text: string) => void;
   onAnalyze: () => void;
-  onSummarize: () => void;
   isAnalyzing: boolean;
-  isSummarizing: boolean;
-  summaryResult: string | null;
 }
 
 const ArticleInputPanel: React.FC<ArticleInputPanelProps> = ({

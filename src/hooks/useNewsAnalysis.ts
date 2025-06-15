@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,15 +26,12 @@ export function useNewsAnalysis() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [similarArticles, setSimilarArticles] = useState<SimilarArticle[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [summaryResult, setSummaryResult] = useState<string | null>(null);
-  const [isSummarizing, setIsSummarizing] = useState(false);
   const { toast } = useToast();
 
   const analyzeText = async (inputText: string) => {
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
-    setSummaryResult(null);
 
     try {
       const response = await fetch('/analyze', {
@@ -90,11 +86,11 @@ export function useNewsAnalysis() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: inputText }),
       });
-
       if (response.ok) {
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           const data = await response.json();
+          console.log("[SIMILAR ARTICLES] Data fetched from /similar API:", data); // DEBUG LOG
           setSimilarArticles(data.articles || []);
         } else {
           setSimilarArticles([]);
@@ -102,93 +98,15 @@ export function useNewsAnalysis() {
       } else {
         setSimilarArticles([]);
       }
-    } catch {
+    } catch (err) {
+      console.error("Error fetching similar articles:", err);
       setSimilarArticles([]);
-    }
-  };
-
-  const summarizeText = async (inputText: string) => {
-    setIsSummarizing(true);
-    setSummaryResult(null);
-    try {
-      const response = await fetch('/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText }),
-      });
-      const contentType = response.headers.get('content-type');
-      let responseText: string | null = null, data: any = null;
-
-      if (!contentType || !contentType.includes('application/json')) {
-        // Show the actual response text to the user
-        responseText = await response.text();
-        let errorMessage = "Server returned an unexpected response";
-        if (responseText) {
-          // Attempt to extract JSON error from HTML or display actual output, but also guard for "null"
-          const match = responseText.match(/"error"\s*:\s*"([^"]+)"/);
-          if (match && match[1]) {
-            errorMessage = match[1];
-          } else if (
-            responseText.trim().toLowerCase() === "null" ||
-            responseText.trim() === ""
-          ) {
-            errorMessage = "No summary or error was returned by the server (empty/null response).";
-          } else {
-            errorMessage = responseText.substring(0, 300) +
-              (responseText.length > 300 ? "..." : "");
-          }
-        }
-        console.error("Summarize API non-JSON response:", responseText);
-        throw new Error(errorMessage);
-      }
-
-      // If here, response is stated as JSON -- but let's try/catch as JSON parsing could still fail
-      try {
-        data = await response.json();
-      } catch (parseErr) {
-        responseText = await response.text();
-        let parseMsg =
-          "An error occurred while parsing the server response. " +
-          (responseText ? `Raw response: ${responseText}` : "");
-        console.error("Summarize API JSON parse error:", parseErr, responseText);
-        throw new Error(parseMsg);
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          (data && data.error) ||
-            `Summarization failed (HTTP ${response.status})`
-        );
-      }
-
-      if (!data || typeof data.summary !== "string" || !data.summary.trim()) {
-        console.error("Summarize API returned invalid/empty data:", data);
-        throw new Error("The server did not return a summary. Please try again.");
-      }
-
-      setSummaryResult(data.summary || "Summary not available.");
-      toast({
-        title: "Summary Complete",
-        description: "The article has been summarized.",
-      });
-    } catch (err: any) {
-      const errorMessage = err?.message || "Unknown error";
-      setSummaryResult(null);
-      console.error("Summarization Error:", errorMessage, err);
-      toast({
-        title: "Summarization Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSummarizing(false);
     }
   };
 
   return {
     isAnalyzing, analysisResult, similarArticles, error,
-    summaryResult, isSummarizing,
-    analyzeText, summarizeText, setSimilarArticles,
+    analyzeText, setSimilarArticles,
     setError,
   };
 }

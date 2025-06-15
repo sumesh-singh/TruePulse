@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,11 @@ const getRealFakeColor = (classification: string) => {
 const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
   analysisResult, similarArticles, error, isAnalyzing
 }) => {
+  // DEBUG LOG to verify similarArticles being received and rendered
+  React.useEffect(() => {
+    console.log("[AnalyticsResultsPanel] similarArticles prop:", similarArticles);
+  }, [similarArticles]);
+
   return (
     <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm transition-colors">
       <CardHeader className="pb-4">
@@ -181,3 +187,4 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
 };
 
 export default AnalyticsResultsPanel;
+

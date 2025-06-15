@@ -1,4 +1,3 @@
-
 from flask import Flask
 from flask_cors import CORS
 from transformers import pipeline
@@ -31,27 +30,18 @@ except Exception as e:
     classifier = None
 app.config['classifier'] = classifier
 
-# Initialize summarization model at startup
-try:
-    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-    app.logger.info("Summarization model loaded successfully")
-except Exception as e:
-    import traceback
-    app.logger.error(f"Failed to load summarizer model: {e}")
-    app.logger.error(traceback.format_exc())
-    summarizer = None
-app.config['summarizer'] = summarizer
+# --------- REMOVED summarizer and summarize route setup ---------
 
 # Register API blueprints
 from routes.health import health_bp
 from routes.analyze import analyze_bp
 from routes.similar import similar_bp
-from routes.summarize import summarize_bp
+# from routes.summarize import summarize_bp
 
 app.register_blueprint(health_bp)
 app.register_blueprint(analyze_bp)
 app.register_blueprint(similar_bp)
-app.register_blueprint(summarize_bp)
+# app.register_blueprint(summarize_bp)
 
 @app.route('/', methods=['GET'])
 def home():
@@ -59,7 +49,7 @@ def home():
         "message": "News Analytics API is running!",
         "status": "Server is running successfully",
         "port": 5000,
-        "endpoints": ["/analyze", "/similar", "/health", "/summarize"]
+        "endpoints": ["/analyze", "/similar", "/health"]
     }
 
 if __name__ == '__main__':
