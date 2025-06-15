@@ -94,6 +94,21 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
           </div>
         )}
 
+        {/* Show analyzed text preview so user knows what's being analyzed */}
+        {analyzedText && (
+          <div className="p-4 rounded bg-background border border-muted mb-4">
+            <div className="text-xs font-semibold text-muted-foreground mb-1">
+              Analyzed Article Text Preview:
+            </div>
+            <div className="text-xs text-muted-foreground whitespace-pre-line break-words max-h-40 overflow-y-auto">
+              {analyzedText}
+              {analyzedText.length >= 500 && (
+                <span className="text-muted-foreground">... (truncated)</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="text-center py-8">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-500" />

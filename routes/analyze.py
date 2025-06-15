@@ -60,13 +60,13 @@ def analyze_text():
                                  not any(cls for cls in (p.get("class") or []) if "ad" in cls or "promo" in cls or "related" in cls or "sponsor" in cls)]
                         article_text = " ".join([p.get_text(separator=" ", strip=True) for p in ps if p.get_text(strip=True)])
                 article_text = article_text.strip()
-                if len(article_text.split()) < 50:
+                # If article_text could not be parsed or very short, warn
+                if not article_text or len(article_text.split()) < 50:
                     parse_warning = (
-                        "Article extraction resulted in very little text. "
-                        "The analyzed content may be insufficient for reliable AI analysis. "
-                        "Please double-check the link or paste the article content yourself."
+                        "The news article content extracted from this link appears to be too short for effective analysis. "
+                        "Extraction may have failed—please check the text preview below, or paste the main article text manually for best results."
                     )
-                extracted_text = article_text[:500]  # Save a 500-character preview for frontend
+                extracted_text = article_text[:500]  # always send preview
                 summary_input = article_text
                 text = article_text
             except Exception as e:
@@ -115,8 +115,8 @@ def analyze_text():
                 "score": result['score'],
                 "wordCount": result['word_count'],
                 "text": text[:100] + "..." if len(text) > 100 else text,
-                "extracted_text": extracted_text,           # <--- NEW
-                "parse_warning": parse_warning,             # <--- NEW
+                "extracted_text": extracted_text,           # <--- always included
+                "parse_warning": parse_warning,             # <--- always included if present
                 "analysis_timestamp": datetime.now().isoformat(),
                 "real_or_fake": result['real_or_fake'],
                 "fake_confidence": result['fake_confidence'],
