@@ -1,8 +1,9 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, FileText, TrendingUp } from 'lucide-react';
+import { Loader2, Send, TrendingUp } from 'lucide-react';
 
 interface ArticleInputPanelProps {
   inputText: string;
@@ -15,7 +16,7 @@ interface ArticleInputPanelProps {
 }
 
 const ArticleInputPanel: React.FC<ArticleInputPanelProps> = ({
-  inputText, setInputText, onAnalyze, onSummarize, isAnalyzing, isSummarizing, summaryResult
+  inputText, setInputText, onAnalyze, isAnalyzing
 }) => {
   return (
     <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm transition-colors">
@@ -60,32 +61,8 @@ const ArticleInputPanel: React.FC<ArticleInputPanelProps> = ({
                 </>
               )}
             </Button>
-            <Button
-              type="button"
-              disabled={isSummarizing || !inputText.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium transition-all duration-200 transform hover:scale-[1.02]"
-              onClick={onSummarize}
-            >
-              {isSummarizing ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Summarizing...
-                </>
-              ) : (
-                <>
-                  <FileText className="mr-2 h-5 w-5" />
-                  Summarize Article
-                </>
-              )}
-            </Button>
           </div>
         </form>
-        {summaryResult && (
-          <div className="mt-6 p-4 bg-accent rounded-lg border border-accent text-foreground transition-colors">
-            <h3 className="font-semibold mb-2 text-foreground">Summary</h3>
-            <p className="whitespace-pre-line">{summaryResult}</p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
