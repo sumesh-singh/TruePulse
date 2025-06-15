@@ -140,7 +140,6 @@ class FakeNewsClassifier:
 
             # --- HONEST SENTIMENT SANITY CHECK ---
 
-            # Updated keyword set
             tragic_keywords = [
                 "crash", "crashes", "accident", "accidents", "death", "deaths", "dead", "killed", "killings", "fatal",
                 "disaster", "disasters", "fire", "fires", "injury", "injuries", "injured", "collapse", "collapsed",
@@ -153,7 +152,6 @@ class FakeNewsClassifier:
 
             is_tragic = False
             for kw in tragic_keywords:
-                # Full word match or phrase match
                 if " " in kw:
                     if kw in lower_text:
                         is_tragic = True
@@ -163,17 +161,14 @@ class FakeNewsClassifier:
                         is_tragic = True
                         break
 
-            # Override sentiment if tragic words found and model claims "Positive"
             if sentiment == "Positive" and is_tragic:
                 print(f"OVERRIDE: Sentiment set to 'Negative' for tragic news (word matched in keywords list).")
                 sentiment = "Negative"
-                sentiment_confidence = min(sentiment_confidence, 60.0)  # Cap confidence for forced override
+                sentiment_confidence = min(sentiment_confidence, 60.0)
 
-            # Debug log
             print("Sentiment model raw results:", sentiment_results)
             print("Best sentiment:", best_sentiment['label'], "->", sentiment, "score:", best_sentiment['score'])
 
-            # Fake news detection
             fake_news_result = None
             real_or_fake = "Unknown"
             fake_confidence = 0
@@ -187,14 +182,12 @@ class FakeNewsClassifier:
                     if isinstance(fake_results, list) and len(fake_results) > 0 and isinstance(fake_results[0], list):
                         fake_results = fake_results[0]
 
-                    # Debug print
                     print("Fake news model raw results:", fake_results)
 
                     label_scores = {r['label'].upper(): r['score'] for r in fake_results}
-                    # Logging for user reports
                     print("Parsed fake news scores:", label_scores)
 
-                    if any('sst-2' in str(self.fake_news_detector.model), str(self.fake_news_detector.model)):
+                    if 'sst-2' in str(self.fake_news_detector.model):
                         fallback_reason = "Fallback model (not trained for news authenticity) used for fake news detection."
 
                     best_label = max(label_scores, key=label_scores.get)
@@ -202,7 +195,6 @@ class FakeNewsClassifier:
                     model_raw_output = label_scores
 
                     if len(label_scores) > 1:
-                        # If both scores similar, it's uncertain
                         v = list(label_scores.values())
                         if abs(v[0]-v[1]) < 0.15 or 0.45 < best_score < 0.65:
                             real_or_fake = "Uncertain"
@@ -224,7 +216,6 @@ class FakeNewsClassifier:
                                 real_or_fake = "Unknown"
                                 reasoning = "Model could not assign clear authenticity."
                     else:
-                        # Only one label returned
                         real_or_fake = best_label.title()
                         fake_confidence = round(best_score*100,1)
                         reasoning = f"Model only returned {best_label} with score {fake_confidence}%."
@@ -240,19 +231,16 @@ class FakeNewsClassifier:
                 fallback_reason = "No fake news detector loaded at all."
                 reasoning = "Could not analyze authenticity; model unavailable."
 
-            # Calculate trust score more honestly
             trust_score = self.calculate_trust_score(fake_news_result, {
                 'sentiment': sentiment,
                 'confidence': sentiment_confidence
             }, fallback_reason=fallback_reason)
 
-            # Extract key topics (as before, could be improved with real extractor)
             words = text.lower().split()
             stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
             key_words = [word.strip('.,!?";') for word in words if len(word) > 4 and word not in stop_words]
             key_topics = list(set(key_words[:5])) if key_words else ['General', 'News', 'Article']
 
-            # Construct summary and merge reasoning
             short_summary = ""
             if real_or_fake == 'Fake':
                 short_summary = f"Likely fake news ({reasoning.replace('The article is classified as','')})"
@@ -263,7 +251,6 @@ class FakeNewsClassifier:
             else:
                 short_summary = "Unable to determine authenticity."
 
-            # Main result dict
             return {
                 'label': sentiment,
                 'score': round(best_sentiment['score'], 4),
@@ -272,7 +259,7 @@ class FakeNewsClassifier:
                 'real_or_fake': real_or_fake,
                 'fake_confidence': fake_confidence,
                 'trust_score': trust_score,
-                'reasoning': reasoning if reasoning else short_summary,  # Explanation for UI
+                'reasoning': reasoning if reasoning else short_summary,
                 'keyTopics': key_topics,
                 'summary': short_summary,
                 'all_scores': [
@@ -284,8 +271,8 @@ class FakeNewsClassifier:
                 ],
                 'text_length': len(text),
                 'word_count': len(text.split()),
-                'model_debug': model_raw_output,       # For debugging; can be shown on UI (optional)
-                'fallback_info': fallback_reason       # To surface to user if needed
+                'model_debug': model_raw_output,
+                'fallback_info': fallback_reason
             }
 
         except Exception as e:
