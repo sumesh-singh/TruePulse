@@ -59,11 +59,11 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
     analysisResult?.reasoning &&
     !PLACEHOLDER_REASONINGS.includes(analysisResult.reasoning.trim());
 
-  // <NEW>: Get more detail about backend fallback
-  // The backend (Python) sometimes returns .fallback_info in the analysis result.
-  const fallbackInfo = typeof analysisResult === "object" && "fallbackInfo" in (analysisResult as any)
-    ? (analysisResult as any).fallbackInfo
-    : undefined;
+  // FIX: Only check for fallbackInfo if analysisResult is not null
+  const fallbackInfo =
+    analysisResult && typeof analysisResult === "object" && "fallbackInfo" in analysisResult
+      ? (analysisResult as any).fallbackInfo
+      : undefined;
 
   return (
     <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm transition-colors">
