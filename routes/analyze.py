@@ -41,13 +41,43 @@ def analyze_text():
                     }), 400
                 html = resp.text
                 soup = BeautifulSoup(html, "html.parser")
+
+                # Remove advertisement and unrelated sections (ads, promos, related, sponsor)
+                removal_selectors = [
+                    'aside',
+                    '[class*="ad"]', '[id*="ad"]',
+                    '[class*="promo"]', '[id*="promo"]',
+                    '[class*="related"]', '[id*="related"]',
+                    '[class*="sponsor"]', '[id*="sponsor"]',
+                    '[class*="sidebar"]', '[id*="sidebar"]',
+                    '[class*="recommend"]', '[id*="recommend"]',
+                    '[class*="nav"]', '[id*="nav"]',
+                    '[class*="footer"]', '[id*="footer"]',
+                    '[class*="cookie"]', '[id*="cookie"]',
+                    '[class*="newsletter"]', '[id*="newsletter"]',
+                ]
+                for selector in removal_selectors:
+                    for tag in soup.select(selector):
+                        tag.decompose()
+
+                # Prefer the <article> tag for main content
                 article = soup.find("article")
                 article_text = ""
                 if article:
-                    article_text = " ".join([p.get_text(separator=" ", strip=True) for p in article.find_all("p")])
+                    ps = article.find_all("p")
+                    # Remove any nested ads etc. again within <article>
+                    for sel in removal_selectors:
+                        for tag in article.select(sel):
+                            tag.decompose()
+                    article_text = " ".join([p.get_text(separator=" ", strip=True) for p in ps if p.get_text(strip=True)])
                 if not article_text:
-                    ps = soup.find_all("p")
-                    article_text = " ".join([p.get_text(separator=" ", strip=True) for p in ps])
+                    # Fallback, grab top-level <p>'s (direct children of <body>) only
+                    body = soup.body
+                    if body:
+                        ps = [p for p in body.find_all("p", recursive=True)
+                              if p.find_parent(["aside", "footer", "nav", "header"]) is None and
+                                 not any(cls for cls in (p.get("class") or []) if "ad" in cls or "promo" in cls or "related" in cls or "sponsor" in cls)]
+                        article_text = " ".join([p.get_text(separator=" ", strip=True) for p in ps if p.get_text(strip=True)])
                 article_text = article_text.strip()
                 if len(article_text.split()) < 50:
                     return jsonify({
@@ -114,3 +144,4 @@ def analyze_text():
             "error": f"Internal server error: {str(e)}",
             "details": "An unexpected error occurred on the server."
         }), 500
+
