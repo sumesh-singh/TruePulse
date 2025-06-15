@@ -1,3 +1,4 @@
+
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime
 import re
@@ -63,12 +64,15 @@ def analyze_text():
                                  not any(cls for cls in (p.get("class") or []) if "ad" in cls or "promo" in cls or "related" in cls or "sponsor" in cls)]
                         article_text = " ".join([p.get_text(separator=" ", strip=True) for p in ps if p.get_text(strip=True)])
                 article_text = article_text.strip()
-                # If article_text could not be parsed or very short, warn
-                if not article_text or len(article_text.split()) < 50:
-                    parse_warning = (
-                        "The news article content extracted from this link appears to be too short for effective analysis. "
-                        "Extraction may have failed—please check the text preview below, or paste the main article text manually for best results."
-                    )
+                # If article_text could not be parsed or very short, warn and abort with better error!
+                if not article_text or len(article_text.split()) < 30:
+                    return jsonify({
+                        "error": (
+                            "Could not extract sufficient article content from the provided URL. "
+                            "The page may be protected, non-standard, or does not contain readable article text. "
+                            "Please check the link or try pasting the article text manually."
+                        )
+                    }), 400
                 extracted_text = article_text[:500]  # always send preview
                 summary_input = article_text
                 text = article_text
@@ -142,3 +146,4 @@ def analyze_text():
             "error": f"Internal server error: {str(e)}",
             "details": "An unexpected error occurred on the server."
         }), 500
+
