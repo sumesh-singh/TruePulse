@@ -139,21 +139,35 @@ class FakeNewsClassifier:
             sentiment_confidence = round(best_sentiment['score'] * 100, 1)
 
             # --- HONEST SENTIMENT SANITY CHECK ---
-            # If tragic/negative event keywords present, but sentiment model picked "Positive", override to Negative/Uncertain
+
+            # Updated keyword set
             tragic_keywords = [
-                "crash", "accident", "death", "dead", "killed", "fatal", "disaster", "fire", "injury",
-                "injured", "collapse", "tragedy", "victim", "explosion", "fatality", "emergency", "mayday", "plane crash"
+                "crash", "crashes", "accident", "accidents", "death", "deaths", "dead", "killed", "killings", "fatal",
+                "disaster", "disasters", "fire", "fires", "injury", "injuries", "injured", "collapse", "collapsed",
+                "tragedy", "tragedies", "victim", "victims", "explosion", "explosions", "fatality", "fatalities",
+                "emergency", "mayday", "plane crash", "derail", "derailed", "wreck", "wreckage", "disastrous",
+                "hostage", "attack", "attacks", "bomb", "bombing", "terror", "terrorist", "shooting", "shootings"
             ]
             lower_text = text.lower()
-            if sentiment == "Positive":
-                for kw in tragic_keywords:
-                    # For extra reliability, match on word boundary or near-boundary
-                    if f" {kw} " in f" {lower_text} " or kw in lower_text:
-                        print(f"OVERRIDE: Sentiment set to 'Negative' because word '{kw}' found in text.")
-                        # Option: You could choose "Uncertain" if you want softer handling
-                        sentiment = "Negative"
-                        sentiment_confidence = min(sentiment_confidence, 60.0)  # Don't allow high confidence for forced overrides
+            words_in_text = set(lower_text.replace(".", " ").replace(",", " ").replace("!", " ").replace("?", " ").split())
+
+            is_tragic = False
+            for kw in tragic_keywords:
+                # Full word match or phrase match
+                if " " in kw:
+                    if kw in lower_text:
+                        is_tragic = True
                         break
+                else:
+                    if kw in words_in_text:
+                        is_tragic = True
+                        break
+
+            # Override sentiment if tragic words found and model claims "Positive"
+            if sentiment == "Positive" and is_tragic:
+                print(f"OVERRIDE: Sentiment set to 'Negative' for tragic news (word matched in keywords list).")
+                sentiment = "Negative"
+                sentiment_confidence = min(sentiment_confidence, 60.0)  # Cap confidence for forced override
 
             # Debug log
             print("Sentiment model raw results:", sentiment_results)
