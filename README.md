@@ -1,109 +1,139 @@
 
-# Welcome to your Lovable project
+# TruePulse – News Credibility & AI Analysis Tool
 
-## Project info
+## Project Overview
 
-**URL**: https://lovable.dev/projects/653957cd-f1a4-4bdb-8e52-84c439e11614
+TruePulse is a web tool that helps users quickly assess the credibility, sentiment, and key topics of news articles or text snippets. Powered by modern AI/ML models, it offers instant fake news detection, summary, and trust/confidence scoring for any pasted news link or text.
 
 ---
 
-## 🚀 Quick Start (Backend + Frontend)
+## Features
 
-This project includes a React frontend (in this folder) and a Python (Flask) backend (see `app.py` and `fake_news_classifier.py`).
+- Paste news links OR article text for instant AI analysis
+- See credibility ("fake"/"real" with confidence), sentiment, key topics, and summary
+- Works on arbitrary news articles (not tied to pre-ranked news sources)
+- Connects to similar and reliable news for cross-verification
 
-### 1. **Clone the Repository**
+---
 
+## Quick Start
+
+This project features:
+- A **Python (Flask)** backend (with Hugging Face Transformers)
+- A **React (Vite, TypeScript)** frontend
+
+**Tip:** Run backend and frontend in two separate terminals.
+
+---
+
+### 1. Prerequisites
+
+**Backend:**
+- Python 3.8 or newer ([Download Python](https://www.python.org/downloads/))
+- pip (comes with most Python installations)
+
+**Frontend:**
+- Node.js 18+ and npm ([Download Node.js](https://nodejs.org/))
+
+**Recommended:**  
+Do all setup steps in your own virtual environment (venv/conda for Python, and nvm/nodeenv for Node).
+
+---
+
+### 2. Install & Run Backend (Flask + Transformers)
+
+**a) Clone this repository**
 ```sh
 git clone <YOUR_GIT_URL>
 cd <YOUR_PROJECT_NAME>
 ```
 
----
-
-### 2. **Backend Setup (Python/Flask)**
-
-> **Requirements:**  
-> - Python 3.8+  
-> - pip (Python package manager)  
-
-**a) Install backend dependencies:**  
-Navigate to your backend directory (the project root) and install required Python packages:
-
+**b) Install backend dependencies**
 ```sh
+# In the project root
 pip install -r requirements.txt
-```
-or, if there is no `requirements.txt` (add if missing by yourself):
-
-```sh
-pip install flask transformers torch
+# If requirements.txt does not exist run:
+pip install flask transformers torch beautifulsoup4 requests
 ```
 
-**b) Start the backend server:**
-
+**c) Start the backend server**
 ```sh
+# In the project root
 python app.py
 ```
-This will start the Flask server at `http://localhost:5000`.
+- The backend runs at [http://localhost:5000](http://localhost:5000).
+- Health check: [http://localhost:5000/health](http://localhost:5000/health)
+
+**_If you get errors (e.g., torch install fails):_**
+- Confirm your Python version: `python --version`
+- Make sure `pip` updates packages in the correct Python environment: `which pip`
+- If using Apple Silicon (M1/M2) or Windows, see [PyTorch Install Guide](https://pytorch.org/get-started/locally/)
 
 ---
 
-### 3. **Frontend Setup (React/Vite)**
+### 3. Install & Run Frontend (React/Vite)
 
-> **Requirements:**  
-> - Node.js & npm installed ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
-
-**a) Install frontend dependencies:**
+**a) Install frontend dependencies**
 ```sh
+# In the project root (where package.json is)
 npm install
 ```
 
-**b) Start the frontend development server:**
+**b) Start frontend development server**
 ```sh
 npm run dev
 ```
-Frontend runs at `http://localhost:8080` (proxying API calls to backend).
+
+Open your browser and go to: [http://localhost:8080](http://localhost:8080)
+
+**Frontend automatically proxies API requests** (`/analyze`, `/similar`, `/health`) to your local Flask backend.
 
 ---
 
-### 4. **Open Your App**
+### 4. Environment Variables (NewsAPI, etc)
 
-Open your browser and go to:
-- Frontend: [http://localhost:8080](http://localhost:8080)
-- Backend Health: [http://localhost:5000/health](http://localhost:5000/health)
-
----
-
-## Deploy, Custom Domain, and More
-
-For deployment and custom domains, see Lovable documentation:
-
-- [Publish Your App](https://docs.lovable.dev/user-guides/how-to-deploy)
-- [Connect a Custom Domain](https://docs.lovable.dev/tips-tricks/custom-domain)
+- The backend uses a NewsAPI key for finding similar articles:  
+  Default key is provided, but you can override it by setting the `NEWS_API_KEY` environment variable before running the backend:
+  ```
+  export NEWS_API_KEY=your_actual_newsapi_key_here
+  ```
+  [Get your own free NewsAPI key](https://newsapi.org/)
 
 ---
 
-## Troubleshooting
+### 5. Troubleshooting & Tips
 
-- If backend API is not connecting (shows offline), check the backend server log and ensure it is running.
-- If you face Python version or CUDA/torch errors, double-check your Python and pip installations.
-
----
-
-## What technologies are used for this project?
-
-- Vite, TypeScript, React, shadcn-ui, Tailwind CSS (frontend)
-- Flask, Hugging Face Transformers (backend)
+- If you see "Backend offline" on the UI, make sure your backend server is running and listening on port 5000.
+- If you modify the backend, restart the server for changes to take effect.
+- Windows users: Use `set NEWS_API_KEY=...` instead of `export ...`
+- For package issues, confirm you are using correct virtualenv or node version managers.
+- Look for errors in the terminal or browser console for more clues.
 
 ---
 
-## Lovable Usage
+## Deployment & Custom Domain
 
-You can continue editing this code in Lovable by visiting:  
-[https://lovable.dev/projects/653957cd-f1a4-4bdb-8e52-84c439e11614](https://lovable.dev/projects/653957cd-f1a4-4bdb-8e52-84c439e11614)
+- You can publish your app to production via Lovable (see project dashboard)
+- To connect a custom domain, check Lovable's docs: https://docs.lovable.dev/tips-tricks/custom-domain
 
 ---
 
-## (Advanced) Using your own IDE
+## Technologies Used
 
-You may also open and edit the codebase in VS Code/GitHub Codespaces or your favorite text editor.
+- **Frontend:** React (Vite, TypeScript), Shadcn UI, Tailwind CSS
+- **Backend:** Python, Flask, Hugging Face Transformers, Torch
 
+---
+
+## Contributing
+
+- Fork the repo and create a branch.
+- Submit a pull request with your change!
+
+---
+
+## Additional Resources
+
+- [Lovable Documentation](https://docs.lovable.dev/)
+- [Step by Step Project Guide](https://docs.lovable.dev/user-guides/quickstart)
+- [Join the Lovable Community](https://discord.com/channels/1119885301872070706/1280461670979993613)
