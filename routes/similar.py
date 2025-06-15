@@ -38,7 +38,16 @@ def find_similar_articles():
                 "error": "Could not extract meaningful keywords from text"
             }), 400
 
-        search_query = ' OR '.join(keywords[:3])
+        # Use all available keywords for better relevance.
+        # If you want even stricter matching, use as many keywords as possible with "AND".
+        if len(keywords) > 3:
+            top_keywords = keywords[:5]
+        else:
+            top_keywords = keywords
+
+        # Build the query with "AND" for higher relevance
+        search_query = ' AND '.join(top_keywords)
+
         from_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 
         params = {
@@ -79,7 +88,7 @@ def find_similar_articles():
 
         return jsonify({
             'query_text': text[:100] + '...' if len(text) > 100 else text,
-            'keywords_used': keywords[:3],
+            'keywords_used': top_keywords,
             'articles_found': len(articles),
             'articles': articles
         })
@@ -94,3 +103,4 @@ def find_similar_articles():
         return jsonify({
             "error": "Internal server error during news search"
         }), 500
+
