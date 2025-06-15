@@ -204,11 +204,15 @@ class FakeNewsClassifier:
                                 f"{[round(x*100,1) for x in v]}%. This indicates the model is not confident."
                             )
                         else:
-                            if best_label in ["FAKE", "LABEL_1"]:
+                            if best_label in ["FAKE", "LABEL_1"] or any(
+                                fake in best_label for fake in ["LABEL_1_FAKE", "LABEL_FAKE", "FAKE"]
+                            ):
                                 real_or_fake = "Fake"
                                 fake_confidence = round(best_score*100,1)
                                 reasoning = f"The article is classified as 'Fake' with model score {fake_confidence}%."
-                            elif best_label in ["REAL", "LABEL_0"]:
+                            elif best_label in ["REAL", "LABEL_0"] or any(
+                                real in best_label for real in ["LABEL_0_REAL", "LABEL_REAL", "TRUE"]
+                            ):
                                 real_or_fake = "Real"
                                 fake_confidence = round(best_score*100,1)
                                 reasoning = f"The article is classified as 'Real' with model score {fake_confidence}%."
