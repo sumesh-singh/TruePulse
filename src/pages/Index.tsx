@@ -1,10 +1,10 @@
-
 import React, { useState } from "react";
 import { TrendingUp } from "lucide-react";
 import TrueFocus from "./TrueFocus";
 import { useNewsAnalysis } from "../hooks/useNewsAnalysis";
 import ArticleInputPanel from "./ArticleInputPanel";
 import AnalyticsResultsPanel from "./AnalyticsResultsPanel";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 const Index = () => {
   const [inputText, setInputText] = useState('');
@@ -44,23 +44,29 @@ const Index = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-4">
-              <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-4xl font-bold text-gray-900">
-                <TrueFocus
-                  sentence="News Analytics"
-                  manualMode={false}
-                  blurAmount={5}
-                  borderColor="red"
-                  animationDuration={2}
-                  pauseBetweenAnimations={1}
-                />
-              </h1>
+          <div className="flex justify-between items-start">
+            <div className="text-center flex-1">
+              <div className="flex items-center justify-center mb-4">
+                <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
+                <h1 className="text-4xl font-bold text-gray-900">
+                  <TrueFocus
+                    sentence="News Analytics"
+                    manualMode={false}
+                    blurAmount={5}
+                    borderColor="red"
+                    animationDuration={2}
+                    pauseBetweenAnimations={1}
+                  />
+                </h1>
+              </div>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                AI-powered sentiment analysis for news articles. Analyze tone, extract key topics, and discover similar content.
+              </p>
             </div>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              AI-powered sentiment analysis for news articles. Analyze tone, extract key topics, and discover similar content.
-            </p>
+            {/* Theme toggle on the right */}
+            <div className="ml-4">
+              <ThemeSwitcher />
+            </div>
           </div>
         </div>
       </div>

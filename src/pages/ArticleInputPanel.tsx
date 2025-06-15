@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,9 +63,8 @@ const ArticleInputPanel: React.FC<ArticleInputPanelProps> = ({
             </Button>
             <Button
               type="button"
-              variant="secondary"
               disabled={isSummarizing || !inputText.trim()}
-              className="w-full py-3 text-lg font-medium transition-all duration-200"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium transition-all duration-200 transform hover:scale-[1.02]"
               onClick={onSummarize}
             >
               {isSummarizing ? (
