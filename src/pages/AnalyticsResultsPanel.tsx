@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +34,14 @@ const getRealFakeColor = (classification: string) => {
   }
 };
 
+const PLACEHOLDER_REASONINGS = [
+  "Summarization model not available.",
+  "No reasoning provided",
+  "",
+  null,
+  undefined,
+];
+
 const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
   analysisResult, similarArticles, error, isAnalyzing
 }) => {
@@ -42,6 +49,11 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
   React.useEffect(() => {
     console.log("[AnalyticsResultsPanel] similarArticles prop:", similarArticles);
   }, [similarArticles]);
+
+  // Helper to check if we have a genuine reasoning string
+  const hasValidReasoning =
+    analysisResult?.reasoning &&
+    !PLACEHOLDER_REASONINGS.includes(analysisResult.reasoning.trim());
 
   return (
     <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm transition-colors">
@@ -142,7 +154,7 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
             </div>
 
             {/* AI Reasoning Report */}
-            {analysisResult.reasoning && (
+            {hasValidReasoning && (
               <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 border border-purple-200 dark:border-purple-800 transition-colors">
                 <h3 className="font-semibold text-foreground mb-3 flex items-center">
                   <Brain className="h-5 w-5 text-purple-600 mr-2" />
