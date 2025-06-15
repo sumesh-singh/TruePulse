@@ -39,12 +39,12 @@ class FakeNewsClassifier:
                 logger.error(f"✗ Failed to load fallback sentiment model: {fallback_error}")
                 self.classifier = None
 
-        # Load fake news detection model
+        # Load fake news detection model (changed here to yksharma/fake-news-classifier)
         try:
             logger.info("Loading fake news detection model...")
             self.fake_news_detector = pipeline(
                 'text-classification',
-                model='mrm8488/bert-tiny-finetuned-fake-news-detection',
+                model='yksharma/fake-news-classifier',
                 return_all_scores=True
             )
             logger.info("✓ Fake news detection model loaded successfully")
@@ -198,3 +198,4 @@ class FakeNewsClassifier:
         except Exception as e:
             logger.error(f"Error during classification: {e}")
             raise RuntimeError(f"Classification failed: {e}")
+
