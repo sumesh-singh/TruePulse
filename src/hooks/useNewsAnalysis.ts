@@ -19,6 +19,7 @@ export interface AnalysisResult {
   realOrFake?: string;      // Added: real/fake classification
   fakeConfidence?: number;  // Added: confidence in fake detection
   trustScore?: number;      // Added: overall trust score
+  reasoning?: string;       // Added: AI reasoning explanation
 }
 
 export function useNewsAnalysis() {
@@ -59,6 +60,7 @@ export function useNewsAnalysis() {
         realOrFake: data.real_or_fake || "Unknown",
         fakeConfidence: data.fake_confidence || 0,
         trustScore: data.trust_score || 50,
+        reasoning: data.reasoning || data.summary || "No reasoning provided",
       });
 
       fetchSimilarArticles(inputText);

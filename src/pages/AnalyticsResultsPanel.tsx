@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, ExternalLink, Loader2, AlertCircle } from "lucide-react";
+import { FileText, ExternalLink, Loader2, AlertCircle, Brain } from "lucide-react";
 import { SimilarArticle, AnalysisResult } from "../hooks/useNewsAnalysis";
 
 interface AnalyticsResultsPanelProps {
@@ -141,6 +141,19 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
               </div>
             </div>
 
+            {/* AI Reasoning Report */}
+            {analysisResult.reasoning && (
+              <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 border border-purple-200 dark:border-purple-800 transition-colors">
+                <h3 className="font-semibold text-foreground mb-3 flex items-center">
+                  <Brain className="h-5 w-5 text-purple-600 mr-2" />
+                  AI Reasoning Report
+                </h3>
+                <div className="text-sm text-muted-foreground bg-background/50 dark:bg-background/30 p-3 rounded border">
+                  <p className="leading-relaxed">{analysisResult.reasoning}</p>
+                </div>
+              </div>
+            )}
+
             {/* Similar Articles */}
             {similarArticles.length > 0 && (
               <div className="p-4 rounded-lg bg-accent border border-accent text-foreground transition-colors">
@@ -187,4 +200,3 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
 };
 
 export default AnalyticsResultsPanel;
-
