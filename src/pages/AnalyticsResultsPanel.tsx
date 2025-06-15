@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,12 +49,21 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
   // DEBUG LOG to verify similarArticles being received and rendered
   React.useEffect(() => {
     console.log("[AnalyticsResultsPanel] similarArticles prop:", similarArticles);
-  }, [similarArticles]);
+    if (analysisResult) {
+      console.log("[AnalyticsResultsPanel] AnalysisResult prop:", analysisResult);
+    }
+  }, [similarArticles, analysisResult]);
 
   // Helper to check if we have a genuine reasoning string
   const hasValidReasoning =
     analysisResult?.reasoning &&
     !PLACEHOLDER_REASONINGS.includes(analysisResult.reasoning.trim());
+
+  // <NEW>: Get more detail about backend fallback
+  // The backend (Python) sometimes returns .fallback_info in the analysis result.
+  const fallbackInfo = typeof analysisResult === "object" && "fallbackInfo" in (analysisResult as any)
+    ? (analysisResult as any).fallbackInfo
+    : undefined;
 
   return (
     <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm transition-colors">
@@ -126,6 +136,27 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                   Detection confidence: {analysisResult.fakeConfidence}%
                 </div>
               )}
+              {/* NEW: Show fallback/unknown explanation when classification is "Unknown" */}
+              {analysisResult.realOrFake?.toLowerCase() === "unknown" && (
+                <div className="mt-4 p-3 rounded bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100 text-sm">
+                  <strong>Unable to determine authenticity.</strong>
+                  <br />
+                  The AI model could not classify this article as "Fake" or "Real."
+                  <br />
+                  {fallbackInfo && (
+                    <div className="mt-2">
+                      <span className="font-medium">Reason:</span>{" "}
+                      {(fallbackInfo as string).replace(/\.$/, '')}.
+                    </div>
+                  )}
+                  {!fallbackInfo && (
+                    <span>
+                      This usually happens if your backend could not load a news authenticity model, or the result is too uncertain.<br />
+                      Please check your backend logs for model loading errors.
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Sentiment Analysis */}
@@ -140,8 +171,6 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                 </span>
               </div>
             </div>
-
-            {/* Key Topics */}
             <div className="p-4 rounded-lg bg-accent border border-accent text-foreground transition-colors">
               <h3 className="font-semibold text-foreground mb-3">Key Topics</h3>
               <div className="flex flex-wrap gap-2">
@@ -152,8 +181,6 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                 ))}
               </div>
             </div>
-
-            {/* AI Reasoning Report */}
             {hasValidReasoning && (
               <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 border border-purple-200 dark:border-purple-800 transition-colors">
                 <h3 className="font-semibold text-foreground mb-3 flex items-center">
@@ -165,8 +192,6 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                 </div>
               </div>
             )}
-
-            {/* Similar Articles */}
             {similarArticles.length > 0 && (
               <div className="p-4 rounded-lg bg-accent border border-accent text-foreground transition-colors">
                 <h3 className="font-semibold text-foreground mb-3">Related Articles</h3>
@@ -192,8 +217,6 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                 </div>
               </div>
             )}
-
-            {/* Updated Statistics */}
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-900 border border-blue-100 dark:border-blue-900">
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-300">{analysisResult.wordCount}</div>
