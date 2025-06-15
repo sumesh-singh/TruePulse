@@ -55,7 +55,7 @@ const Index = () => {
                 <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
                 <h1 className="text-4xl font-bold text-foreground">
                   <TrueFocus
-                    sentence="News Analytics"
+                    sentence="TruePulse"
                     manualMode={false}
                     blurAmount={5}
                     borderColor="red"
