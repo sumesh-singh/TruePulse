@@ -8,6 +8,8 @@ export interface SimilarArticle {
   source?: string;
   published_at?: string;
   description?: string;
+  trust_score?: number;   // Added: trust score (0-100)
+  trust_status?: string;  // Added: trust label e.g. "Trusted"
 }
 
 export interface AnalysisResult {
@@ -109,14 +111,55 @@ export function useNewsAnalysis() {
         body: JSON.stringify({ text: inputText }),
       });
       const contentType = response.headers.get('content-type');
+      let responseText: string | null = null, data: any = null;
+
       if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        throw new Error(`Server returned ${contentType}. Response: ${responseText.substring(0, 100)}...`);
+        // Show the actual response text to the user
+        responseText = await response.text();
+        let errorMessage = "Server returned an unexpected response";
+        if (responseText) {
+          // Attempt to extract JSON error from HTML or display actual output, but also guard for "null"
+          const match = responseText.match(/"error"\s*:\s*"([^"]+)"/);
+          if (match && match[1]) {
+            errorMessage = match[1];
+          } else if (
+            responseText.trim().toLowerCase() === "null" ||
+            responseText.trim() === ""
+          ) {
+            errorMessage = "No summary or error was returned by the server (empty/null response).";
+          } else {
+            errorMessage = responseText.substring(0, 300) +
+              (responseText.length > 300 ? "..." : "");
+          }
+        }
+        console.error("Summarize API non-JSON response:", responseText);
+        throw new Error(errorMessage);
       }
-      const data = await response.json();
+
+      // If here, response is stated as JSON -- but let's try/catch as JSON parsing could still fail
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        responseText = await response.text();
+        let parseMsg =
+          "An error occurred while parsing the server response. " +
+          (responseText ? `Raw response: ${responseText}` : "");
+        console.error("Summarize API JSON parse error:", parseErr, responseText);
+        throw new Error(parseMsg);
+      }
+
       if (!response.ok) {
-        throw new Error(data.error || 'Summarization failed');
+        throw new Error(
+          (data && data.error) ||
+            `Summarization failed (HTTP ${response.status})`
+        );
       }
+
+      if (!data || typeof data.summary !== "string" || !data.summary.trim()) {
+        console.error("Summarize API returned invalid/empty data:", data);
+        throw new Error("The server did not return a summary. Please try again.");
+      }
+
       setSummaryResult(data.summary || "Summary not available.");
       toast({
         title: "Summary Complete",
@@ -125,6 +168,7 @@ export function useNewsAnalysis() {
     } catch (err: any) {
       const errorMessage = err?.message || "Unknown error";
       setSummaryResult(null);
+      console.error("Summarization Error:", errorMessage, err);
       toast({
         title: "Summarization Failed",
         description: errorMessage,
