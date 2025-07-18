@@ -4,6 +4,7 @@ from datetime import datetime
 import re
 import requests
 from bs4 import BeautifulSoup
+import research  # Import the new research module
 
 analyze_bp = Blueprint('analyze', __name__)
 
@@ -25,15 +26,17 @@ def analyze_text():
         url_pattern = re.compile(r'^(http|https)://[^\s/$.?#].[^\s]*$', re.IGNORECASE)
         is_url = url_pattern.match(text)
         is_plain_text = False
-        extracted_text = ""  # new
-        parse_warning = None  # new
+        extracted_text = ""
+        parse_warning = None
+        article_url = ""
 
         if is_url:
+            article_url = text
             try:
                 headers = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                 }
-                resp = requests.get(text, timeout=15, headers=headers, allow_redirects=True)
+                resp = requests.get(article_url, timeout=15, headers=headers, allow_redirects=True)
                 if resp.status_code == 401:
                     return jsonify({
                         "error": "Access denied: The website requires authentication or blocks automated requests. Please try copying the article text manually."
@@ -75,7 +78,6 @@ def analyze_text():
                                  not any(cls for cls in (p.get("class") or []) if "ad" in cls or "promo" in cls or "related" in cls or "sponsor" in cls)]
                         article_text = " ".join([p.get_text(separator=" ", strip=True) for p in ps if p.get_text(strip=True)])
                 article_text = article_text.strip()
-                # If article_text could not be parsed or very short, warn and abort with better error!
                 if not article_text or len(article_text.split()) < 30:
                     return jsonify({
                         "error": (
@@ -84,7 +86,7 @@ def analyze_text():
                             "Please check the link or try pasting the article text manually."
                         )
                     }), 400
-                extracted_text = article_text[:500]  # always send preview
+                extracted_text = article_text[:500]
                 summary_input = article_text
                 text = article_text
             except Exception as e:
@@ -124,6 +126,18 @@ def analyze_text():
 
         try:
             result = classifier.classify_text(text)
+            
+            # New research and trust score calculation
+            if is_url:
+                trust_score_data = research.calculate_trust_score(text, article_url)
+            else:
+                # For plain text, we can't get source reputation, so we return a default.
+                trust_score_data = {
+                    "trust_score": 50,  # Default score for plain text
+                    "source_reputation": "N/A",
+                    "fact_check": research.fact_check(text)
+                }
+
             response = {
                 "sentiment": result['sentiment'],
                 "confidence": result['confidence'],
@@ -133,12 +147,14 @@ def analyze_text():
                 "score": result['score'],
                 "wordCount": result['word_count'],
                 "text": text[:100] + "..." if len(text) > 100 else text,
-                "extracted_text": extracted_text,           # <--- always included
-                "parse_warning": parse_warning,             # <--- always included if present
+                "extracted_text": extracted_text,
+                "parse_warning": parse_warning,
                 "analysis_timestamp": datetime.now().isoformat(),
                 "real_or_fake": result['real_or_fake'],
                 "fake_confidence": result['fake_confidence'],
-                "trust_score": result['trust_score'],
+                "trust_score": trust_score_data['trust_score'],
+                "source_reputation": trust_score_data['source_reputation'],
+                "fact_check": trust_score_data['fact_check'],
                 "fallback_info": result.get('fallback_info', None)
             }
             if summary_error:
@@ -157,4 +173,3 @@ def analyze_text():
             "error": f"Internal server error: {str(e)}",
             "details": "An unexpected error occurred on the server."
         }), 500
-

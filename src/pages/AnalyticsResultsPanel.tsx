@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, ExternalLink, Loader2, AlertCircle, Brain } from "lucide-react";
+import { FileText, ExternalLink, Loader2, AlertCircle, Brain, CheckCircle, XCircle } from "lucide-react";
 import { SimilarArticle, AnalysisResult } from "../hooks/useNewsAnalysis";
 
 interface AnalyticsResultsPanelProps {
@@ -45,7 +45,6 @@ const PLACEHOLDER_REASONINGS = [
 const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
   analysisResult, similarArticles, error, isAnalyzing
 }) => {
-  // DEBUG LOG to verify similarArticles being received and rendered
   React.useEffect(() => {
     console.log("[AnalyticsResultsPanel] similarArticles prop:", similarArticles);
     if (analysisResult) {
@@ -53,18 +52,15 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
     }
   }, [similarArticles, analysisResult]);
 
-  // Helper to check if we have a genuine reasoning string
   const hasValidReasoning =
     analysisResult?.reasoning &&
     !PLACEHOLDER_REASONINGS.includes(analysisResult.reasoning.trim());
 
-  // FIX: Only check for fallbackInfo if analysisResult is not null
   const fallbackInfo =
     analysisResult && typeof analysisResult === "object" && "fallbackInfo" in analysisResult
       ? (analysisResult as any).fallbackInfo
       : undefined;
 
-  // Show the "extracted" text, if available
   const analyzedText =
     analysisResult && typeof analysisResult === "object" && "extractedText" in analysisResult
       ? analysisResult.extractedText
@@ -94,7 +90,6 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
           </div>
         )}
 
-        {/* Show analyzed text preview so user knows what's being analyzed */}
         {analyzedText && (
           <div className="p-4 rounded bg-background border border-muted mb-4">
             <div className="text-xs font-semibold text-muted-foreground mb-1">
@@ -146,27 +141,13 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
 
         {analysisResult && !error && (
           <div className="space-y-6 animate-in fade-in duration-500">
-            {/* AUTHENTICITY ASSESSMENT CARD — refined style */}
+            {/* Trust & Authenticity Section */}
             <div className="p-6 rounded-xl bg-[#1b2538] border border-[#2c3752] text-foreground shadow-lg transition-colors relative">
               <h3 className="font-semibold text-foreground mb-4 text-lg">
-                Authenticity Assessment
+                Trust & Authenticity
               </h3>
-              <div className="flex items-center flex-wrap gap-x-8 gap-y-3 mb-1">
-                {/* Classification */}
-                <div className="flex items-center gap-2 min-w-[160px]">
-                  <span className="text-sm text-muted-foreground">Classification:</span>
-                  <Badge
-                    className={`px-3 py-1 text-sm font-semibold rounded-2xl border-2 border-[#2c3752] bg-[#2c3752] text-blue-200 ${
-                      (analysisResult.realOrFake || "Unknown").toLowerCase() === "unknown"
-                        ? "bg-[#242424] text-[#b2b5b5] border-[#44474d]"
-                        : ""
-                    }`}
-                  >
-                    {analysisResult.realOrFake || "Unknown"}
-                  </Badge>
-                </div>
-                {/* Trust Score Badge */}
-                <div className="flex items-center gap-2 min-w-[150px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Trust Score:</span>
                   <span
                     className="inline-flex items-center font-semibold px-4 py-1 rounded-full text-[#33280b] border border-yellow-300"
@@ -176,39 +157,39 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                       letterSpacing: "0.02em"
                     }}
                   >
-                    {analysisResult.trustScore || 50}/100
+                    {analysisResult.trustScore || 'N/A'}/100
                   </span>
                 </div>
-                {/* Confidence for Fake/Real if meaningful */}
-                {analysisResult.fakeConfidence && analysisResult.fakeConfidence > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Classification:</span>
+                  <Badge className={`px-3 py-1 text-sm font-semibold rounded-2xl border-2 ${getRealFakeColor(analysisResult.realOrFake || "Unknown")}`}>
+                    {analysisResult.realOrFake || "Unknown"}
+                  </Badge>
+                </div>
+                {analysisResult.sourceReputation && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Confidence:</span>
-                    <span className="font-semibold text-[#aaa]">{analysisResult.fakeConfidence}%</span>
+                    <span className="text-sm text-muted-foreground">Source Reputation:</span>
+                    <Badge variant="secondary">{analysisResult.sourceReputation}</Badge>
+                  </div>
+                )}
+                {analysisResult.factCheck && (
+                  <div className="md:col-span-2">
+                    <h4 className="font-semibold text-sm mb-2">Fact-Check Summary:</h4>
+                    <div className="p-3 rounded-lg bg-background/50 border">
+                      <p className="text-sm text-muted-foreground">{analysisResult.factCheck.summary}</p>
+                      <div className="flex items-center mt-2">
+                        <span className="text-xs text-muted-foreground mr-2">Score:</span>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                          <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${analysisResult.factCheck.score}%` }}></div>
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-2">{analysisResult.factCheck.score}%</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
-              {/* NEW: Show fallback/unknown explanation in matching style */}
-              {analysisResult.realOrFake?.toLowerCase() === "unknown" && (
-                <div
-                  className="mt-5 w-full p-4 rounded-lg"
-                  style={{
-                    backgroundColor: "#88521d",
-                    color: "#fff8e1",
-                    fontWeight: 500,
-                    border: "1.5px solid #b37829",
-                  }}
-                >
-                  <div className="mb-1 text-base font-bold text-white">Unable to determine authenticity.</div>
-                  <div className="text-sm font-medium leading-relaxed text-[#fff8e1]">
-                    The AI model could not classify this article as "Fake" or "Real."
-                    <br />
-                    This usually happens if your backend could not load a news authenticity model, or the result is too uncertain.
-                    <br />
-                    Please check your backend logs for model loading errors.
-                  </div>
-                </div>
-              )}
             </div>
+
             {/* Sentiment Analysis */}
             <div className="p-4 rounded-lg bg-accent border border-accent text-foreground transition-colors">
               <h3 className="font-semibold text-foreground mb-3">Sentiment Analysis</h3>
@@ -221,6 +202,7 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                 </span>
               </div>
             </div>
+            
             <div className="p-4 rounded-lg bg-accent border border-accent text-foreground transition-colors">
               <h3 className="font-semibold text-foreground mb-3">Key Topics</h3>
               <div className="flex flex-wrap gap-2">
@@ -231,6 +213,7 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                 ))}
               </div>
             </div>
+
             {hasValidReasoning && (
               <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 border border-purple-200 dark:border-purple-800 transition-colors">
                 <h3 className="font-semibold text-foreground mb-3 flex items-center">
@@ -242,6 +225,7 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                 </div>
               </div>
             )}
+
             {similarArticles.length > 0 && (
               <div className="p-4 rounded-lg bg-accent border border-accent text-foreground transition-colors">
                 <h3 className="font-semibold text-foreground mb-3">Related Articles</h3>
@@ -267,6 +251,7 @@ const AnalyticsResultsPanel: React.FC<AnalyticsResultsPanelProps> = ({
                 </div>
               </div>
             )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-900 border border-blue-100 dark:border-blue-900">
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-300">{analysisResult.wordCount}</div>

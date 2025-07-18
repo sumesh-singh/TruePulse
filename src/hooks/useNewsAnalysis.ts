@@ -7,8 +7,8 @@ export interface SimilarArticle {
   source?: string;
   published_at?: string;
   description?: string;
-  trust_score?: number;   // Added: trust score (0-100)
-  trust_status?: string;  // Added: trust label e.g. "Trusted"
+  trust_score?: number;
+  trust_status?: string;
 }
 
 export interface AnalysisResult {
@@ -16,13 +16,18 @@ export interface AnalysisResult {
   confidence: number;
   keyTopics: string[];
   wordCount: number;
-  realOrFake?: string;      // Added: real/fake classification
-  fakeConfidence?: number;  // Added: confidence in fake detection
-  trustScore?: number;      // Added: overall trust score
-  reasoning?: string;       // Added: AI reasoning explanation
-  fallbackInfo?: string;    // Added: fallback information
-  extractedText?: string;  // Added: the raw, extracted/analyzed text
-  parseWarning?: string;   // Added: UI warning if extraction was sketchy
+  realOrFake?: string;
+  fakeConfidence?: number;
+  trustScore?: number;
+  sourceReputation?: string;
+  factCheck?: {
+    score: number;
+    summary: string;
+  };
+  reasoning?: string;
+  fallbackInfo?: string;
+  extractedText?: string;
+  parseWarning?: string;
 }
 
 export function useNewsAnalysis() {
@@ -66,14 +71,15 @@ export function useNewsAnalysis() {
         wordCount: data.wordCount || inputText.split(' ').filter(word => word.length > 0).length,
         realOrFake: data.real_or_fake || "Unknown",
         fakeConfidence: data.fake_confidence || 0,
-        trustScore: data.trust_score || 50,
+        trustScore: data.trust_score,
+        sourceReputation: data.source_reputation,
+        factCheck: data.fact_check,
         reasoning: data.reasoning || data.summary || "No reasoning provided",
         ...(data.fallback_info !== undefined ? { fallbackInfo: data.fallback_info } : {}),
         ...(data.extracted_text !== undefined ? { extractedText: data.extracted_text } : {}),
         ...(data.parse_warning !== undefined ? { parseWarning: data.parse_warning } : {}),
       });
 
-      // Fetch similar articles after successful analysis
       console.log("[SIMILAR ARTICLES] Starting fetch for similar articles...");
       fetchSimilarArticles(inputText);
       
