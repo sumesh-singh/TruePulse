@@ -30,10 +30,21 @@ def analyze_text():
 
         if is_url:
             try:
-                resp = requests.get(text, timeout=10)
-                if resp.status_code != 200:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+                resp = requests.get(text, timeout=15, headers=headers, allow_redirects=True)
+                if resp.status_code == 401:
                     return jsonify({
-                        "error": f"Failed to fetch article. HTTP status: {resp.status_code}"
+                        "error": "Access denied: The website requires authentication or blocks automated requests. Please try copying the article text manually."
+                    }), 400
+                elif resp.status_code == 403:
+                    return jsonify({
+                        "error": "Access forbidden: The website blocks automated requests. Please try copying the article text manually."
+                    }), 400
+                elif resp.status_code != 200:
+                    return jsonify({
+                        "error": f"Failed to fetch article. HTTP status: {resp.status_code}. The website may be down or blocking requests."
                     }), 400
                 html = resp.text
                 soup = BeautifulSoup(html, "html.parser")
