@@ -2,6 +2,7 @@ Flask
 Flask-Cors
 transformers
 scikit-learn
+beautifulsoup4
 numpy
 pandas
 torch
