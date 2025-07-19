@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     rollupOptions: {
+      external: ['framer-motion']
       // Removed 'framer-motion' from external
     }
   }
