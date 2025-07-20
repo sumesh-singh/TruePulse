@@ -1,11 +1,9 @@
 Flask
 Flask-Cors
 transformers
-scikit-learn
 beautifulsoup4
 numpy
 requests
-pandas
 torch
 accelerate
 sentencepiece
