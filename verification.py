@@ -2,14 +2,13 @@
 import requests
 from utils import extract_keywords, domain_from_url, TRUSTED_NEWS_DOMAINS
 
-def get_related_articles(query, api_key, api_url):
+def get_articles_from_api(query, api_key, api_url):
     """
-    Fetches related articles from the configured News API.
+    Fetches articles from the configured News API based on a query.
     """
     if not api_key or "your_news_api_key" in api_key:
         return {"status": "error", "message": "News API key not configured."}
     
-    # Create a query string from the list of keywords, suitable for the API
     query_string = " OR ".join(f'"{q}"' for q in query)
     
     params = {
@@ -17,7 +16,7 @@ def get_related_articles(query, api_key, api_url):
         'apiKey': api_key,
         'language': 'en',
         'sortBy': 'relevancy',
-        'pageSize': 10  # We only need a few articles to verify
+        'pageSize': 10 
     }
     
     try:
@@ -27,55 +26,57 @@ def get_related_articles(query, api_key, api_url):
     except requests.exceptions.RequestException as e:
         return {"status": "error", "message": str(e)}
 
-def cross_verify_news(text, api_key, api_url):
+def fetch_external_articles(text, api_key, api_url):
     """
-    Performs cross-verification by finding related articles from trusted sources.
-    Returns a summary and a list of verified sources.
+    Performs cross-verification and finds related articles.
+    Returns a dictionary with a verification summary, a list of verified sources,
+    and a list of general related articles.
     """
-    if not text or len(text) < 100:
-        return {
-            "verification_summary": "Article is too short for a meaningful cross-verification.",
-            "verified_sources": []
-        }
-    
-    keywords = extract_keywords(text)
+    keywords = extract_keywords(text, max_keywords=5)
     if not keywords:
         return {
-            "verification_summary": "Could not extract significant keywords for cross-verification.",
-            "verified_sources": []
+            "verification_summary": "Could not extract keywords for verification.",
+            "verified_sources": [],
+            "related_articles": []
         }
         
-    search_result = get_related_articles(keywords, api_key, api_url)
+    search_result = get_articles_from_api(keywords, api_key, api_url)
     
     if search_result.get("status") != "ok":
         message = search_result.get("message", "An unknown error occurred with the News API.")
         return {
-            "verification_summary": f"Could not perform cross-verification: {message}",
-            "verified_sources": []
+            "verification_summary": f"Could not perform verification: {message}",
+            "verified_sources": [],
+            "related_articles": []
         }
         
     verified_sources = []
+    related_articles = []
+    
     for article in search_result.get("articles", []):
         source_url = article.get("url", "")
         domain = domain_from_url(source_url)
         
+        # Add to general related articles list
+        if len(related_articles) < 5: # Limit to 5
+             related_articles.append(article)
+        
+        # If from a trusted domain, also add to verified list
         if domain in TRUSTED_NEWS_DOMAINS:
-            verified_sources.append({
-                "title": article.get("title"),
-                "url": source_url,
-                "source_name": article.get("source", {}).get("name")
-            })
-            
-        # Stop after finding 3 trusted sources to keep it efficient
-        if len(verified_sources) >= 3:
-            break
+            if len(verified_sources) < 3: # Limit to 3
+                verified_sources.append({
+                    "title": article.get("title"),
+                    "url": source_url,
+                    "source_name": article.get("source", {}).get("name")
+                })
             
     if verified_sources:
         summary = f"Found {len(verified_sources)} similar reports from trusted sources."
     else:
-        summary = "Could not find any similar reports from trusted news sources. The story may be new, niche, or unverified."
+        summary = "Could not find any similar reports from trusted news sources."
         
     return {
         "verification_summary": summary,
-        "verified_sources": verified_sources
+        "verified_sources": verified_sources,
+        "related_articles": related_articles
     }
