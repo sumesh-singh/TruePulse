@@ -9,19 +9,21 @@ import logging
 analyze_bp = Blueprint('analyze_bp', __name__)
 logger = logging.getLogger(__name__)
 
+
 def get_text_from_url(url):
     """Fetches and extracts plain text from a given article URL."""
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'}
     try:
         response = requests.get(url, timeout=15, headers=headers)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-        
+
         text_parts = [p.get_text(strip=True) for p in soup.find_all('p')]
         extracted_text = ' '.join(text_parts)
-        
+
         if len(extracted_text.split()) < 50:
-             extracted_text = soup.get_text(separator=' ', strip=True)
+            extracted_text = soup.get_text(separator=' ', strip=True)
 
         return re.sub(r'\s+', ' ', extracted_text).strip()
     except requests.exceptions.RequestException as e:
@@ -69,31 +71,42 @@ def analyze_unified():
 
         # Perform core AI analysis
         ai_result = classifier.classify_text(text_to_analyze)
-        
+
         # Fetch external articles (includes verification and related articles)
-        external_articles_data = fetch_external_articles(text_to_analyze, api_key, api_url)
-        
+        external_articles_data = fetch_external_articles(
+            text_to_analyze, api_key, api_url)
+
         # Combine all results
         final_result = {**ai_result, **external_articles_data}
-        
+
         # Build the final, comprehensive reasoning
         reasoning = [ai_result.get('reasoning', 'Initial AI assessment.')]
-        
+
         if source_domain and source_domain in TRUSTED_NEWS_DOMAINS:
-            final_result['trust_score'] = min(100, ai_result.get('trust_score', 50) + 20)
-            reasoning.append(f"Source ({source_domain}) is on our trusted list, increasing credibility.")
-        
+            final_result['trust_score'] = min(
+                100, ai_result.get('trust_score', 50) + 20)
+            reasoning.append(
+                f"Source ({source_domain}) is on our trusted list, increasing credibility.")
+
         if external_articles_data.get("verified_sources"):
-            final_result['trust_score'] = min(100, final_result['trust_score'] + 25)
-            reasoning.append("Cross-verification found similar reports from other trusted outlets.")
+            final_result['trust_score'] = min(
+                100, final_result['trust_score'] + 25)
+            reasoning.append(
+                "Cross-verification found similar reports from other trusted outlets.")
         else:
-            final_result['trust_score'] = max(0, final_result['trust_score'] - 20)
-            reasoning.append("No similar reports were found from other major news outlets, which reduces confidence.")
-            
+            final_result['trust_score'] = max(
+                0, final_result['trust_score'] - 20)
+            reasoning.append(
+                "No similar reports were found from other major news outlets, which reduces confidence.")
+
         final_result['reasoning'] = " ".join(reasoning)
+
+        if "related_articles" in final_result:
+            final_result["similar_articles"] = final_result["related_articles"]
 
         return jsonify(final_result)
 
     except Exception as e:
-        logger.error(f"Unexpected error in /analyze endpoint: {e}", exc_info=True)
+        logger.error(
+            f"Unexpected error in /analyze endpoint: {e}", exc_info=True)
         return jsonify({"error": "An unexpected server error occurred."}), 500

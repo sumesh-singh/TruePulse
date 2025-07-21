@@ -43,9 +43,13 @@ export const useNewsAnalysis = () => {
 
       setAnalysisResult(data);
       
-      // Correctly populate similarArticles from the 'related_articles' key in the response
-      if (data.related_articles) {
+      // Fix: Accept both related_articles and similar_articles, but prefer related_articles
+      if (data.related_articles && Array.isArray(data.related_articles)) {
         setSimilarArticles(data.related_articles);
+      } else if (data.similar_articles && Array.isArray(data.similar_articles)) {
+        setSimilarArticles(data.similar_articles);
+      } else {
+        setSimilarArticles([]);
       }
 
     } catch (err: any) {
