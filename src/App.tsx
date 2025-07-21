@@ -1,9 +1,9 @@
 
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import { ThemeProvider } from "./components/ThemeProvider";
-import { Toaster } from "./components/ui/toaster";
+import { ThemeProvider } from "@/components/ThemeProvider"; // Corrected path
+import { Toaster } from "@/components/ui/toaster";
 import { NotFound } from "./pages/NotFound";
-import { Index } from "./pages/Index"; // Changed to named import
+import { Index } from "./pages/Index";
 
 function App() {
   return (
