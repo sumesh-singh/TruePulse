@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import requests
 from verification import cross_verify_news
 from utils import domain_from_url, TRUSTED_NEWS_DOMAINS
+import requests as pyrequests  # Avoid conflict with 'requests' used above
 
 analyze_bp = Blueprint('analyze_bp', __name__)
 
@@ -11,14 +12,25 @@ def get_text_from_url(url):
     """Fetches and extracts plain text from a given article URL."""
     try:
         response = requests.get(url, timeout=10, headers={
-                                'User-Agent': 'Mozilla/5.0'})
+            'User-Agent': 'Mozilla/5.0'
+        })
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
+        # Try to get all <p> tags first
         paragraphs = soup.find_all('p')
         article_text = ' '.join(p.get_text() for p in paragraphs)
-        if len(article_text.split()) < 50:
-            # Fallback for sites not using <p> tags, get all text
+        # If not enough text, try <div> tags with lots of text
+        if len(article_text.split()) < 30:
+            divs = soup.find_all('div')
+            div_texts = [div.get_text(separator=' ', strip=True)
+                         for div in divs if len(div.get_text().split()) > 20]
+            article_text = ' '.join(div_texts)
+        # Final fallback: all text
+        if len(article_text.split()) < 30:
             article_text = soup.get_text(separator=' ', strip=True)
+        # Log for debugging
+        print(
+            f"[DEBUG] Extracted text ({len(article_text.split())} words) from {url}")
         return article_text
     except requests.exceptions.HTTPError as e:
         status_code = e.response.status_code
@@ -64,6 +76,29 @@ def perform_full_analysis(text, classifier, api_key, api_url, source_domain=None
             "Cross-verification could not find similar reports from major news outlets. This could mean the story is breaking, niche, or potentially unverified, which reduces confidence.")
 
     final_result['reasoning'] = " ".join(reasoning)
+
+    # Ensure similar_articles is present for frontend
+    if 'similar_articles' not in final_result:
+        # If your cross_verify_news returns related articles under another key, map it here
+        if 'related_articles' in verification_result:
+            final_result['similar_articles'] = verification_result['related_articles']
+        else:
+            final_result['similar_articles'] = []
+
+    # Fetch similar articles if not present
+    if 'similar_articles' not in final_result or not final_result['similar_articles']:
+        try:
+            sim_resp = pyrequests.post(
+                "http://localhost:5000/similar",  # Adjust if running on a different port
+                json={"text": text},
+                timeout=8
+            )
+            if sim_resp.ok:
+                sim_data = sim_resp.json()
+                final_result['similar_articles'] = sim_data.get('articles', [])
+        except Exception as e:
+            final_result['similar_articles'] = []
+
     return final_result
 
 
@@ -86,17 +121,25 @@ def analyze_unified():
         return jsonify({"error": "The analysis model is not loaded on the server."}), 500
 
     try:
-        text_to_analyze = text
+        text_to_analyze = ""
         source_domain = None
 
         if url:
+            # Always treat as URL and extract text
             source_domain = domain_from_url(url)
             text_to_analyze = get_text_from_url(url)
             if isinstance(text_to_analyze, str) and text_to_analyze.startswith("Error:"):
                 return jsonify({"error": text_to_analyze}), 400
+            # Log for debugging
+            print(f"[DEBUG] Text extracted from URL ({source_domain}): {text_to_analyze[:200]}...")
 
+        elif text:
+            # Treat as plain text
+            text_to_analyze = text
+
+        # Now check the length of the extracted text, not the URL itself
         if not text_to_analyze or len(text_to_analyze.split()) < 30:
-            return jsonify({"error": "The text for analysis is too short. Please provide a valid article or URL."}), 400
+            return jsonify({"error": "The extracted article text is too short for analysis. Please provide a valid news article URL or more article text."}), 400
 
         # Get News API config from the app
         api_key = current_app.config.get('NEWS_API_KEY')

@@ -39,8 +39,12 @@ export const useNewsAnalysis = () => {
 
       setAnalysisResult(data);
       // The backend response now includes everything, including similar/verified articles
-      if (data.verified_sources) {
+      if (data.similar_articles) {
+        setSimilarArticles(data.similar_articles);
+      } else if (data.verified_sources) {
         setSimilarArticles(data.verified_sources);
+      } else {
+        setSimilarArticles([]);
       }
 
     } catch (err: any) {

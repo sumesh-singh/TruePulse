@@ -1,4 +1,3 @@
-
 import {
   Card,
   CardContent,
@@ -80,7 +79,14 @@ export const AnalyticsResultsPanel = ({ result, isLoading, similarArticles }: An
   const authenticityVariant = result.real_or_fake === 'Real' ? 'secondary' : result.real_or_fake === 'Fake' ? 'destructive' : 'outline';
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      style={{
+        maxHeight: '80vh', // Limit panel height to 80% of viewport
+        overflowY: 'auto', // Enable vertical scroll if content exceeds
+        paddingRight: '0.5rem', // Optional: add some space for scrollbar
+      }}
+    >
       <Card>
         <CardHeader>
           <CardTitle>Analytics Results</CardTitle>

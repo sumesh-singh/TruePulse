@@ -5,6 +5,9 @@ import requests
 
 similar_bp = Blueprint('similar_bp', __name__)
 
+
+
+
 @similar_bp.route('/similar', methods=['POST'])
 def find_similar_articles():
     """
