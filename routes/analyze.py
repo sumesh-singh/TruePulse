@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from bs4 import BeautifulSoup
 import requests
+import re
 from verification import cross_verify_news
 
 analyze_bp = Blueprint('analyze_bp', __name__)
@@ -16,7 +17,6 @@ def get_text_from_url(url):
         article_text = ' '.join(p.get_text() for p in paragraphs)
         
         if len(article_text.split()) < 50:
-             # Fallback for sites not using <p> tags, get all text
              article_text = soup.get_text(separator=' ', strip=True)
 
         return article_text
@@ -30,46 +30,50 @@ def get_text_from_url(url):
 @analyze_bp.route('/analyze', methods=['POST'])
 def analyze_article():
     data = request.get_json()
-    if not data:
+    if not data or 'text' not in data:
         return jsonify({"error": "Invalid request: no data provided"}), 400
 
-    text = data.get('text')
-    url = data.get('url')
-
-    if not text and url:
-        text = get_text_from_url(url)
-        if isinstance(text, str) and text.startswith("Error:"):
-            return jsonify({"error": text}), 400
+    input_text = data.get('text').strip()
     
-    if not text or len(text.strip().split()) < 30:
-        return jsonify({"error": "Text is too short for a meaningful analysis."}), 400
+    # Regex to determine if the input is a URL
+    url_pattern = re.compile(r'https?://\S+')
+    text_to_analyze = ""
+
+    if url_pattern.match(input_text):
+        # If the input is a URL, fetch the content
+        text_to_analyze = get_text_from_url(input_text)
+        if isinstance(text_to_analyze, str) and text_to_analyze.startswith("Error:"):
+            return jsonify({"error": text_to_analyze}), 400
+    else:
+        # Otherwise, treat the input as the text to analyze
+        text_to_analyze = input_text
+
+    # Now, perform the length check on the actual article content
+    if not text_to_analyze or len(text_to_analyze.strip().split()) < 30:
+        return jsonify({"error": "Text is too short for a meaningful analysis. Please provide a valid article or URL."}), 400
 
     classifier = current_app.config.get('classifier')
     if not classifier:
         return jsonify({"error": "Classifier model is not loaded on the server."}), 500
 
     try:
-        # Perform the core AI analysis (sentiment, fake news)
-        analysis_result = classifier.classify_text(text)
+        # Perform the core AI analysis on the fetched/provided text
+        analysis_result = classifier.classify_text(text_to_analyze)
         
-        # Get News API config from the app
         api_key = current_app.config.get('NEWS_API_KEY')
         api_url = current_app.config.get('NEWS_API_URL')
         
-        # Perform the new cross-verification step
-        verification_result = cross_verify_news(text, api_key, api_url)
+        # Perform cross-verification on the text
+        verification_result = cross_verify_news(text_to_analyze, api_key, api_url)
         
-        # Combine the results
+        # Combine and enhance the results
         final_result = {**analysis_result, **verification_result}
         
-        # Enhance the final reasoning and adjust trust score based on verification
         if verification_result.get("verified_sources"):
             final_result['reasoning'] += f" Furthermore, cross-verification found similar reports from other trusted news outlets, increasing confidence in the story's authenticity."
-            # Boost trust score if verified
             final_result['trust_score'] = min(100, final_result['trust_score'] + 15)
         else:
             final_result['reasoning'] += f" However, cross-verification could not find similar reports from major news outlets. This could mean the story is breaking, niche, or potentially unverified."
-            # Penalize trust score if not verified by other sources
             final_result['trust_score'] = max(0, final_result['trust_score'] - 15)
 
         return jsonify(final_result)
