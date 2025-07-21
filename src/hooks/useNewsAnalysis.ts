@@ -1,10 +1,14 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
+// Define the structure of the analysis result for clarity
 interface AnalysisResult {
+  verified_sources?: { title: string; url: string; source_name: string }[];
+  related_articles?: SimilarArticle[];
   [key: string]: any;
 }
 
+// Define the structure for a related/similar article
 interface SimilarArticle {
     title: string;
     url: string;
@@ -31,20 +35,17 @@ export const useNewsAnalysis = () => {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const data: AnalysisResult = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'An unexpected server error occurred.');
       }
 
       setAnalysisResult(data);
-      // The backend response now includes everything, including similar/verified articles
-      if (data.similar_articles) {
-        setSimilarArticles(data.similar_articles);
-      } else if (data.verified_sources) {
-        setSimilarArticles(data.verified_sources);
-      } else {
-        setSimilarArticles([]);
+      
+      // Correctly populate similarArticles from the 'related_articles' key in the response
+      if (data.related_articles) {
+        setSimilarArticles(data.related_articles);
       }
 
     } catch (err: any) {
@@ -71,7 +72,7 @@ export const useNewsAnalysis = () => {
   return {
     isAnalyzing,
     analysisResult,
-    similarArticles,
+    similarArticles, // Ensure this is returned for the UI
     error,
     analyzeText,
     analyzeUrl,
