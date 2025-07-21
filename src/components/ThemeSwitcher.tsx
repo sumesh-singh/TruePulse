@@ -1,13 +1,17 @@
 import React from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/ThemeProvider"; // Corrected import path
 import { Switch } from "@/components/ui/switch";
 import { Moon, Sun } from "lucide-react";
 
-const ThemeSwitcher: React.FC = () => {
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+export const ThemeSwitcher: React.FC = () => {
+  const { theme, setTheme } = useTheme();
 
-  // Don't render until theme is hydrated (prevents hydration mismatch)
+  // Determine the current visual theme, resolving "system"
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  // Don't render on the server or until mounted on the client
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
   if (!mounted) return null;
@@ -24,5 +28,3 @@ const ThemeSwitcher: React.FC = () => {
     </div>
   );
 };
-
-export default ThemeSwitcher;

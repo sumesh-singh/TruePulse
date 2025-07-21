@@ -23,9 +23,6 @@ export const ArticleInputPanel = ({
   activeTab,
   onTabChange,
 }: ArticleInputPanelProps) => {
-  const isUrlDisabled = isAnalyzing || (activeTab === 'text' && textInput.trim() !== '');
-  const isTextDisabled = isAnalyzing || (activeTab === 'url' && urlInput.trim() !== '');
-  
   return (
     <Card className="w-full">
       <CardHeader>
@@ -34,8 +31,8 @@ export const ArticleInputPanel = ({
       <CardContent>
         <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="url" disabled={isUrlDisabled}>Analyze by URL</TabsTrigger>
-            <TabsTrigger value="text" disabled={isTextDisabled}>Analyze by Text</TabsTrigger>
+            <TabsTrigger value="url" disabled={isAnalyzing}>Analyze by URL</TabsTrigger>
+            <TabsTrigger value="text" disabled={isAnalyzing}>Analyze by Text</TabsTrigger>
           </TabsList>
           <TabsContent value="url">
             <div className="space-y-2 mt-4">
@@ -45,7 +42,7 @@ export const ArticleInputPanel = ({
                 placeholder="https://www.example.com/news/article"
                 value={urlInput}
                 onChange={(e) => onUrlChange(e.target.value)}
-                disabled={isUrlDisabled}
+                disabled={isAnalyzing}
               />
                <p className="text-xs text-muted-foreground">
                 Enter the full URL of the news article you want to analyze.
@@ -61,7 +58,7 @@ export const ArticleInputPanel = ({
                 value={textInput}
                 onChange={(e) => onTextChange(e.target.value)}
                 className="min-h-[200px]"
-                disabled={isTextDisabled}
+                disabled={isAnalyzing}
               />
               <p className="text-xs text-muted-foreground">
                 The more text you provide, the more accurate the analysis will be.

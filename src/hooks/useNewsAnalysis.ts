@@ -18,34 +18,17 @@ export const useNewsAnalysis = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const findSimilar = useCallback(async (text: string) => {
-    try {
-        const response = await fetch('/similar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text }),
-        });
-        const data = await response.json();
-        if (response.ok && data.articles) {
-            setSimilarArticles(data.articles);
-        }
-    } catch (err) {
-        // Non-critical error, so we just log it without showing a toast
-        console.error("Failed to fetch similar articles:", err);
-    }
-  }, []);
-
-  const analyze = async (endpoint: string, body: object, textForSimilarity: string) => {
+  const analyze = useCallback(async (payload: { url?: string; text?: string }) => {
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
     setSimilarArticles([]);
 
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetch('/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -55,8 +38,10 @@ export const useNewsAnalysis = () => {
       }
 
       setAnalysisResult(data);
-      // After successful analysis, find similar articles
-      findSimilar(textForSimilarity);
+      // The backend response now includes everything, including similar/verified articles
+      if (data.verified_sources) {
+        setSimilarArticles(data.verified_sources);
+      }
 
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to connect to the backend.';
@@ -69,16 +54,14 @@ export const useNewsAnalysis = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [toast]);
 
   const analyzeText = (text: string) => {
-    analyze('/analyze-text', { text }, text);
+    analyze({ text });
   };
 
   const analyzeUrl = (url: string) => {
-    // For URL analysis, the text for similarity search is the URL itself initially.
-    // The backend will fetch the content for the main analysis.
-    analyze('/analyze-url', { url }, url);
+    analyze({ url });
   };
 
   return {
