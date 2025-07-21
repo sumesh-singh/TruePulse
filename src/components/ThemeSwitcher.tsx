@@ -1,5 +1,5 @@
 import React from "react";
-import { useTheme } from "@/components/ThemeProvider"; // Corrected import path
+import { useTheme } from "@/components/ThemeProvider";
 import { Switch } from "@/components/ui/switch";
 import { Moon, Sun } from "lucide-react";
 
