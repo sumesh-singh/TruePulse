@@ -51,10 +51,19 @@ def analyze_unified():
             text_to_analyze = get_text_from_url(url)
             if isinstance(text_to_analyze, str) and text_to_analyze.startswith("Error:"):
                 return jsonify({"error": text_to_analyze}), 400
+            # Log for debugging
+            print(
+                f"[DEBUG] Text extracted from URL ({source_domain}): {text_to_analyze[:200]}...")
 
-        if len(text_to_analyze.split()) < 30:
-            return jsonify({"error": "The text for analysis is too short."}), 400
-        
+        elif text:
+            # Treat as plain text
+            text_to_analyze = text
+
+        # Now check the length of the extracted text, not the URL itself
+        if not text_to_analyze or len(text_to_analyze.split()) < 30:
+            return jsonify({"error": "The extracted article text is too short for analysis. Please provide a valid news article URL or more article text."}), 400
+
+        # Get News API config from the app
         api_key = current_app.config.get('NEWS_API_KEY')
         api_url = current_app.config.get('NEWS_API_URL')
 
