@@ -4,7 +4,7 @@ import re
 from urllib.parse import urlparse
 from collections import Counter
 
-TRUSTED_NEWS_DOMAINS = {"bbc.co.uk", "nytimes.com", "reuters.com", "apnews.com", "npr.org", "theguardian.com"}
+TRUSTED_NEWS_DOMAINS = {"bbc.co.uk", "nytimes.com", "reuters.com", "apnews.com", "npr.org", "theguardian.com", "bbc.com"}
 UNTRUSTED_NEWS_DOMAINS = {"yourscvnews.com", "worldtruth.tv", "abcnews.com.co", "theonion.com"}
 
 def domain_from_url(url: str) -> str:

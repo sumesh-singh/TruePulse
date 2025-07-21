@@ -14,6 +14,18 @@ export const Index = () => {
   const [activeTab, setActiveTab] = useState('url'); // 'url' or 'text'
   const { isAnalyzing, analysisResult, similarArticles, error, analyzeText, analyzeUrl, setError } = useNewsAnalysis();
 
+  const handleTabChange = (tab: string) => {
+    if (isAnalyzing) return;
+    setActiveTab(tab);
+    // Clear the other input when switching tabs to enforce one-at-a-time submission
+    if (tab === 'url') {
+      setTextInput('');
+    } else {
+      setUrlInput('');
+    }
+    setError(null); // Clear any previous errors
+  };
+
   const handleAnalyze = () => {
     setError(null);
     if (activeTab === 'url') {
@@ -54,7 +66,7 @@ export const Index = () => {
             onTextChange={setTextInput}
             isAnalyzing={isAnalyzing}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
           />
           <Button onClick={handleAnalyze} disabled={isSubmitDisabled} className="w-full">
             {isAnalyzing ? 'Analyzing...' : 'Analyze'}
