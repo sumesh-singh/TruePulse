@@ -2,12 +2,13 @@
 from flask import Blueprint, request, jsonify, current_app
 from bs4 import BeautifulSoup
 import requests
-import re
 from verification import cross_verify_news
+from utils import domain_from_url, TRUSTED_NEWS_DOMAINS
 
 analyze_bp = Blueprint('analyze_bp', __name__)
 
 def get_text_from_url(url):
+    """Fetches and extracts plain text from a given article URL."""
     try:
         response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
         response.raise_for_status()
@@ -27,59 +28,82 @@ def get_text_from_url(url):
     except requests.exceptions.RequestException as e:
         return f"Error: Failed to fetch content from URL: {e}"
 
-@analyze_bp.route('/analyze', methods=['POST'])
-def analyze_article():
-    data = request.get_json()
-    if not data or 'text' not in data:
-        return jsonify({"error": "Invalid request: no data provided"}), 400
-
-    input_text = data.get('text').strip()
+def perform_full_analysis(text, classifier, api_key, api_url):
+    """Helper function to run the complete analysis suite on a given text."""
+    analysis_result = classifier.classify_text(text)
+    verification_result = cross_verify_news(text, api_key, api_url)
+    final_result = {**analysis_result, **verification_result}
     
-    # Regex to determine if the input is a URL
-    url_pattern = re.compile(r'https?://\S+')
-    text_to_analyze = ""
-
-    if url_pattern.match(input_text):
-        # If the input is a URL, fetch the content
-        text_to_analyze = get_text_from_url(input_text)
-        if isinstance(text_to_analyze, str) and text_to_analyze.startswith("Error:"):
-            return jsonify({"error": text_to_analyze}), 400
+    if verification_result.get("verified_sources"):
+        final_result['reasoning'] += " Furthermore, cross-verification found similar reports from other trusted news outlets, strengthening the story's credibility."
+        final_result['trust_score'] = min(100, final_result['trust_score'] + 15)
     else:
-        # Otherwise, treat the input as the text to analyze
-        text_to_analyze = input_text
+        final_result['reasoning'] += " However, cross-verification could not find similar reports from major news outlets. This could mean the story is new, niche, or potentially unverified."
+        final_result['trust_score'] = max(0, final_result['trust_score'] - 15)
+        
+    return final_result
 
-    # Now, perform the length check on the actual article content
-    if not text_to_analyze or len(text_to_analyze.strip().split()) < 30:
-        return jsonify({"error": "Text is too short for a meaningful analysis. Please provide a valid article or URL."}), 400
+@analyze_bp.route('/analyze-text', methods=['POST'])
+def analyze_text_article():
+    """Analyzes a raw block of text."""
+    data = request.get_json()
+    if not data or not data.get('text'):
+        return jsonify({"error": "Invalid request: 'text' field is required."}), 400
+
+    text_to_analyze = data.get('text').strip()
+    if len(text_to_analyze.split()) < 30:
+        return jsonify({"error": "Pasted text is too short for a meaningful analysis."}), 400
 
     classifier = current_app.config.get('classifier')
     if not classifier:
-        return jsonify({"error": "Classifier model is not loaded on the server."}), 500
+        return jsonify({"error": "The analysis model is not loaded on the server."}), 500
 
     try:
-        # Perform the core AI analysis on the fetched/provided text
-        analysis_result = classifier.classify_text(text_to_analyze)
-        
         api_key = current_app.config.get('NEWS_API_KEY')
         api_url = current_app.config.get('NEWS_API_URL')
-        
-        # Perform cross-verification on the text
-        verification_result = cross_verify_news(text_to_analyze, api_key, api_url)
-        
-        # Combine and enhance the results
-        final_result = {**analysis_result, **verification_result}
-        
-        if verification_result.get("verified_sources"):
-            final_result['reasoning'] += f" Furthermore, cross-verification found similar reports from other trusted news outlets, increasing confidence in the story's authenticity."
-            final_result['trust_score'] = min(100, final_result['trust_score'] + 15)
-        else:
-            final_result['reasoning'] += f" However, cross-verification could not find similar reports from major news outlets. This could mean the story is breaking, niche, or potentially unverified."
-            final_result['trust_score'] = max(0, final_result['trust_score'] - 15)
-
-        return jsonify(final_result)
-    
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        result = perform_full_analysis(text_to_analyze, classifier, api_key, api_url)
+        return jsonify(result)
     except Exception as e:
-        current_app.logger.error(f"Unexpected error in /analyze: {e}", exc_info=True)
-        return jsonify({"error": "An unexpected error occurred during analysis."}), 500
+        current_app.logger.error(f"Error in /analyze-text: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred during text analysis."}), 500
+
+@analyze_bp.route('/analyze-url', methods=['POST'])
+def analyze_url_article():
+    """Analyzes an article from a URL."""
+    data = request.get_json()
+    if not data or not data.get('url'):
+        return jsonify({"error": "Invalid request: 'url' field is required."}), 400
+
+    url = data.get('url').strip()
+    domain = domain_from_url(url)
+    
+    classifier = current_app.config.get('classifier')
+    if not classifier:
+        return jsonify({"error": "The analysis model is not loaded on the server."}), 500
+
+    try:
+        text_to_analyze = get_text_from_url(url)
+        if isinstance(text_to_analyze, str) and text_to_analyze.startswith("Error:"):
+            return jsonify({"error": text_to_analyze}), 400
+
+        if len(text_to_analyze.split()) < 30:
+            return jsonify({"error": "Could not extract enough text from the URL for a meaningful analysis."}), 400
+
+        analysis_result = classifier.classify_text(text_to_analyze)
+
+        if domain in TRUSTED_NEWS_DOMAINS:
+            analysis_result['trust_score'] = 95
+            analysis_result['reasoning'] = f"The primary analysis is based on content from '{domain}', which is on our list of trusted news sources. Cross-verification was deemed unnecessary."
+            analysis_result['verification_summary'] = "Source is on trusted list; cross-verification skipped."
+            analysis_result['verified_sources'] = []
+            return jsonify(analysis_result)
+        else:
+            api_key = current_app.config.get('NEWS_API_KEY')
+            api_url = current_app.config.get('NEWS_API_URL')
+            full_result = perform_full_analysis(text_to_analyze, classifier, api_key, api_url)
+            full_result['reasoning'] = f"Analysis of content from '{domain}'. " + full_result['reasoning']
+            return jsonify(full_result)
+
+    except Exception as e:
+        current_app.logger.error(f"Error in /analyze-url: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred during URL analysis."}), 500

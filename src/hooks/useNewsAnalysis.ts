@@ -1,152 +1,62 @@
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useToast } from '@/components/ui/use-toast';
 
-export interface SimilarArticle {
-  title: string;
-  url: string;
-  source?: string;
-  published_at?: string;
-  description?: string;
-  trust_score?: number;
-  trust_status?: string;
+interface AnalysisResult {
+  [key: string]: any;
 }
 
-export interface AnalysisResult {
-  sentiment: string;
-  confidence: number;
-  keyTopics: string[];
-  wordCount: number;
-  realOrFake?: string;
-  fakeConfidence?: number;
-  trustScore?: number;
-  sourceReputation?: string;
-  factCheck?: {
-    score: number;
-    summary: string;
-  };
-  reasoning?: string;
-  fallbackInfo?: string;
-  extractedText?: string;
-  parseWarning?: string;
-}
-
-export function useNewsAnalysis() {
+export const useNewsAnalysis = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [similarArticles, setSimilarArticles] = useState<SimilarArticle[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const analyzeText = async (inputText: string) => {
+  const analyze = async (endpoint: string, body: object) => {
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
 
     try {
-      console.log("[ANALYSIS] Starting analysis for text:", inputText.substring(0, 100) + "...");
-      
-      const response = await fetch('/analyze', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText }),
+        body: JSON.stringify(body),
       });
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        throw new Error(`Server returned ${contentType || "unknown content type"}. Response: ${responseText.substring(0, 200)}...`);
-      }
 
       const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        throw new Error(data.error || 'An unexpected server error occurred.');
       }
 
-      console.log("[ANALYSIS] Analysis response received:", data);
-
-      setAnalysisResult({
-        sentiment: data.sentiment || data.label || "Unknown",
-        confidence: data.confidence || Math.round((data.score || 0) * 100),
-        keyTopics: data.keyTopics || ["General", "News"],
-        wordCount: data.wordCount || inputText.split(' ').filter(word => word.length > 0).length,
-        realOrFake: data.real_or_fake || "Unknown",
-        fakeConfidence: data.fake_confidence || 0,
-        trustScore: data.trust_score,
-        sourceReputation: data.source_reputation,
-        factCheck: data.fact_check,
-        reasoning: data.reasoning || data.summary || "No reasoning provided",
-        ...(data.fallback_info !== undefined ? { fallbackInfo: data.fallback_info } : {}),
-        ...(data.extracted_text !== undefined ? { extractedText: data.extracted_text } : {}),
-        ...(data.parse_warning !== undefined ? { parseWarning: data.parse_warning } : {}),
-      });
-
-      console.log("[SIMILAR ARTICLES] Starting fetch for similar articles...");
-      fetchSimilarArticles(inputText);
-      
-      toast({
-        title: "Analysis Complete",
-        description: `Sentiment: ${data.sentiment || data.label || "Unknown"}, Authenticity: ${data.real_or_fake || "Unknown"}`,
-      });
+      setAnalysisResult(data);
     } catch (err: any) {
-      const errorMessage = err?.message || "Unknown error occurred";
-      console.error("[ANALYSIS] Error during analysis:", err);
+      const errorMessage = err.message || 'Failed to connect to the backend.';
       setError(errorMessage);
       toast({
-        title: "Analysis Failed",
+        title: 'Analysis Failed',
         description: errorMessage,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const fetchSimilarArticles = async (inputText: string) => {
-    try {
-      console.log("[SIMILAR ARTICLES] Making request to /similar endpoint...");
-      
-      const response = await fetch('/similar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText }),
-      });
+  const analyzeText = (text: string) => {
+    analyze('/analyze-text', { text });
+  };
 
-      console.log("[SIMILAR ARTICLES] Response status:", response.status);
-      console.log("[SIMILAR ARTICLES] Response headers:", Object.fromEntries(response.headers.entries()));
-
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        console.log("[SIMILAR ARTICLES] Content type:", contentType);
-        
-        if (contentType && contentType.includes('application/json')) {
-          const data = await response.json();
-          console.log("[SIMILAR ARTICLES] Data fetched from /similar API:", data);
-          
-          if (data.articles && Array.isArray(data.articles)) {
-            console.log("[SIMILAR ARTICLES] Setting similar articles:", data.articles.length, "articles found");
-            setSimilarArticles(data.articles);
-          } else {
-            console.log("[SIMILAR ARTICLES] No articles array in response or articles is not an array");
-            setSimilarArticles([]);
-          }
-        } else {
-          console.log("[SIMILAR ARTICLES] Response is not JSON, setting empty array");
-          setSimilarArticles([]);
-        }
-      } else {
-        const errorText = await response.text();
-        console.error("[SIMILAR ARTICLES] HTTP error:", response.status, errorText);
-        setSimilarArticles([]);
-      }
-    } catch (err) {
-      console.error("[SIMILAR ARTICLES] Network/fetch error:", err);
-      setSimilarArticles([]);
-    }
+  const analyzeUrl = (url: string) => {
+    analyze('/analyze-url', { url });
   };
 
   return {
-    isAnalyzing, analysisResult, similarArticles, error,
-    analyzeText, setSimilarArticles,
+    isAnalyzing,
+    analysisResult,
+    error,
+    analyzeText,
+    analyzeUrl,
     setError,
   };
-}
+};

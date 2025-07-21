@@ -1,88 +1,77 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ArticleInputPanel } from './ArticleInputPanel';
+import { AnalyticsResultsPanel } from './AnalyticsResultsPanel';
+import { useNewsAnalysis } from '@/hooks/useNewsAnalysis';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { BackendStatus } from '@/components/BackendStatus';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal } from 'lucide-react';
 
-import React, { useState, useEffect } from "react";
-import { TrendingUp } from "lucide-react";
-import TrueFocus from "./TrueFocus";
-import { useNewsAnalysis } from "../hooks/useNewsAnalysis";
-import ArticleInputPanel from "./ArticleInputPanel";
-import AnalyticsResultsPanel from "./AnalyticsResultsPanel";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
+export const Index = () => {
+  const [urlInput, setUrlInput] = useState('');
+  const [textInput, setTextInput] = useState('');
+  const [activeTab, setActiveTab] = useState('url'); // 'url' or 'text'
+  const { isAnalyzing, analysisResult, error, analyzeText, analyzeUrl, setError } = useNewsAnalysis();
 
-const Index = () => {
-  const [inputText, setInputText] = useState('');
-  const {
-    isAnalyzing,
-    analysisResult,
-    similarArticles,
-    error,
-    analyzeText,
-    setError,
-    setSimilarArticles,
-  } = useNewsAnalysis();
-
-  // Always set the page title to "TruePulse"
-  useEffect(() => {
-    document.title = "TruePulse";
-  }, []);
-
-  // When user submits for analysis
   const handleAnalyze = () => {
-    if (!inputText.trim()) {
-      setError("Please enter a news article or snippet to analyze.");
-      return;
+    setError(null);
+    if (activeTab === 'url') {
+      if (!urlInput.trim()) {
+        setError("URL cannot be empty.");
+        return;
+      }
+      analyzeUrl(urlInput);
+    } else {
+      if (!textInput.trim()) {
+        setError("Text cannot be empty.");
+        return;
+      }
+      analyzeText(textInput);
     }
-    analyzeText(inputText);
   };
 
+  const isSubmitDisabled = isAnalyzing || (activeTab === 'url' ? !urlInput.trim() : !textInput.trim());
+
   return (
-    <div className="min-h-screen bg-background transition-colors">
-      {/* Header */}
-      <div className="bg-card border-b border-border shadow-sm transition-colors">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex justify-between items-start">
-            <div className="text-center flex-1">
-              <div className="flex items-center justify-center mb-4">
-                <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
-                <h1 className="text-4xl font-bold text-foreground">
-                  <TrueFocus
-                    sentence="TruePulse"
-                    manualMode={false}
-                    blurAmount={5}
-                    borderColor="red"
-                    animationDuration={2}
-                    pauseBetweenAnimations={1}
-                  />
-                </h1>
-              </div>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                AI-powered sentiment analysis for news articles. Analyze tone, extract key topics, and discover similar content.
-              </p>
-            </div>
-            {/* Theme toggle on the right */}
-            <div className="ml-4">
-              <ThemeSwitcher />
-            </div>
-          </div>
+    <div className="container mx-auto p-4 md:p-8 space-y-8">
+      <header className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+            TruePulse
+          </h1>
+          <BackendStatus />
         </div>
-      </div>
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid gap-8 lg:grid-cols-2">
+        <ThemeSwitcher />
+      </header>
+
+      <main className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="space-y-6">
           <ArticleInputPanel
-            inputText={inputText}
-            setInputText={setInputText}
-            onAnalyze={handleAnalyze}
+            urlInput={urlInput}
+            textInput={textInput}
+            onUrlChange={setUrlInput}
+            onTextChange={setTextInput}
             isAnalyzing={isAnalyzing}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
           />
-          <AnalyticsResultsPanel
-            analysisResult={analysisResult}
-            similarArticles={similarArticles}
-            error={error}
-            isAnalyzing={isAnalyzing}
-          />
+          <Button onClick={handleAnalyze} disabled={isSubmitDisabled} className="w-full">
+            {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+          </Button>
         </div>
-      </div>
+
+        <div className="space-y-6">
+          {error && (
+             <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Analysis Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <AnalyticsResultsPanel result={analysisResult} isLoading={isAnalyzing} />
+        </div>
+      </main>
     </div>
   );
 };
-
-export default Index;
