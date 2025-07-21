@@ -3,8 +3,8 @@ import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
 import { Moon, Sun } from "lucide-react";
 
-const ThemeSwitcher: React.FC = () => {
-  const { resolvedTheme, setTheme } = useTheme();
+export const ThemeSwitcher: React.FC = () => {
+  const { resolvedTheme, setTheme } from useTheme();
   const isDark = resolvedTheme === "dark";
 
   // Don't render until theme is hydrated (prevents hydration mismatch)
@@ -24,5 +24,3 @@ const ThemeSwitcher: React.FC = () => {
     </div>
   );
 };
-
-export default ThemeSwitcher;
