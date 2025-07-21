@@ -12,7 +12,7 @@ export const Index = () => {
   const [urlInput, setUrlInput] = useState('');
   const [textInput, setTextInput] = useState('');
   const [activeTab, setActiveTab] = useState('url'); // 'url' or 'text'
-  const { isAnalyzing, analysisResult, error, analyzeText, analyzeUrl, setError } = useNewsAnalysis();
+  const { isAnalyzing, analysisResult, similarArticles, error, analyzeText, analyzeUrl, setError } = useNewsAnalysis();
 
   const handleAnalyze = () => {
     setError(null);
@@ -69,7 +69,7 @@ export const Index = () => {
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <AnalyticsResultsPanel result={analysisResult} isLoading={isAnalyzing} />
+          <AnalyticsResultsPanel result={analysisResult} isLoading={isAnalyzing} similarArticles={similarArticles} />
         </div>
       </main>
     </div>

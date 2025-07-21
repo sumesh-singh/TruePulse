@@ -70,6 +70,11 @@ class FakeNewsClassifier:
                 except Exception as second_fallback_error:
                     logger.error(f"✗ Failed to load fallback fake news detection model distilbert-base-uncased-finetuned-sst-2-english: {second_fallback_error}")
                     self.fake_news_detector = None
+    
+    def is_model_loaded(self):
+        """Checks if the primary models are loaded and ready."""
+        # The fake news detector is the most crucial part.
+        return self.fake_news_detector is not None
 
     def calculate_trust_score(self, fake_news_result, sentiment_result, fallback_reason=None):
         """Calculate a trust score based on fake news detection and sentiment analysis (more nuanced)"""
