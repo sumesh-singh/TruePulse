@@ -44,9 +44,9 @@ export const useNewsAnalysis = () => {
       setAnalysisResult(data);
       
       // Fix: Accept both related_articles and similar_articles, but prefer related_articles
-      if (data.related_articles && Array.isArray(data.related_articles)) {
+      if (Array.isArray(data.related_articles) && data.related_articles.length > 0) {
         setSimilarArticles(data.related_articles);
-      } else if (data.similar_articles && Array.isArray(data.similar_articles)) {
+      } else if (Array.isArray(data.similar_articles) && data.similar_articles.length > 0) {
         setSimilarArticles(data.similar_articles);
       } else {
         setSimilarArticles([]);

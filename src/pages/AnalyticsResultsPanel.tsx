@@ -132,24 +132,31 @@ export const AnalyticsResultsPanel = ({ result, isLoading, similarArticles }: An
         </CardContent>
       </Card>
       
-      {similarArticles.length > 0 && (
-          <Card>
-              <CardHeader>
-                  <CardTitle>Related Articles</CardTitle>
-                  <CardDescription>Other articles discussing similar topics.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <ul className="space-y-2 text-sm">
-                      {similarArticles.map((article, index) => (
-                          <li key={index}>
-                              <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                                  {article.title} ({article.source.name}) <ExternalLink className="inline-block h-3 w-3 ml-1" />
-                              </a>
-                          </li>
-                      ))}
-                  </ul>
-              </CardContent>
-          </Card>
+      {similarArticles.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Related Articles</CardTitle>
+            <CardDescription>Other articles discussing similar topics.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              {similarArticles.map((article, index) => (
+                <li key={index}>
+                  <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                    {article.title} ({article.source.name}) <ExternalLink className="inline-block h-3 w-3 ml-1" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Related Articles</CardTitle>
+            <CardDescription>No related articles found for this story.</CardDescription>
+          </CardHeader>
+        </Card>
       )}
     </div>
   );
