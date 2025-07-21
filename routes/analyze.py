@@ -2,7 +2,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from bs4 import BeautifulSoup
 import requests
-import re
 from verification import cross_verify_news
 from utils import domain_from_url, TRUSTED_NEWS_DOMAINS
 
@@ -17,6 +16,9 @@ def get_text_from_url(url):
         paragraphs = soup.find_all('p')
         article_text = ' '.join(p.get_text() for p in paragraphs)
         if len(article_text.split()) < 50:
+             # Fallback for sites not using <p> tags, get all text
+             article_text = soup.get_text(separator=' ', strip=True)
+
             article_text = soup.get_text(separator=' ', strip=True)
         return article_text
     except requests.exceptions.HTTPError as e:
@@ -89,6 +91,7 @@ def analyze_unified():
         if not text_to_analyze or len(text_to_analyze.split()) < 30:
             return jsonify({"error": "The text for analysis is too short. Please provide a valid article or URL."}), 400
         
+        # Get News API config from the app
         api_key = current_app.config.get('NEWS_API_KEY')
         api_url = current_app.config.get('NEWS_API_URL')
 
