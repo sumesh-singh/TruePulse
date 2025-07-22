@@ -90,11 +90,6 @@ def analyze_unified():
             
         final_result['reasoning'] = " ".join(reasoning)
 
-        # No reference to similar.py or /similar endpoint anymore
-        # Only use related_articles from fetch_external_articles
-        if "related_articles" in final_result:
-            final_result["similar_articles"] = final_result["related_articles"]
-
         return jsonify(final_result)
 
     except Exception as e:

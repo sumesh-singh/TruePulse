@@ -1,7 +1,6 @@
 
 from flask import Flask, jsonify, request, send_from_directory
 from routes.analyze import analyze_bp
-from routes.similar import similar_bp
 from routes.health import health_bp
 from fake_news_classifier import FakeNewsClassifier
 from flask_cors import CORS
@@ -32,7 +31,6 @@ app.config['classifier'] = classifier
 # Register API blueprints
 app.register_blueprint(health_bp)
 app.register_blueprint(analyze_bp)
-app.register_blueprint(similar_bp)
 
 @app.route('/')
 def serve_index():
