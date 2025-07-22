@@ -18,10 +18,10 @@ def get_text_from_url(url):
         response = requests.get(url, timeout=15, headers=headers)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-
+        
         # --- Improved text extraction logic ---
         main_content = soup.find('article') or soup.find('main')
-
+        
         if main_content:
             extracted_text = main_content.get_text(separator=' ', strip=True)
         else:
@@ -60,23 +60,20 @@ def analyze_unified():
             url = data['url'].strip()
             source_domain = domain_from_url(url)
             text_to_analyze = get_text_from_url(url)
-            logger.info(
-                f"[DEBUG] Input type: URL. Extracted text word count: {len(text_to_analyze.split())}")
+            logger.info(f"[DEBUG] Input type: URL. Extracted text word count: {len(text_to_analyze.split())}")
             if isinstance(text_to_analyze, str) and text_to_analyze.startswith("Error:"):
                 return jsonify({"error": text_to_analyze}), 400
             print(
                 f"[DEBUG] Text extracted from URL ({source_domain}): {text_to_analyze[:200]}...")
         elif 'text' in data and data['text']:
             text_to_analyze = data['text'].strip()
-            logger.info(
-                f"[DEBUG] Input type: Text. Provided text word count: {len(text_to_analyze.split())}")
+            logger.info(f"[DEBUG] Input type: Text. Provided text word count: {len(text_to_analyze.split())}")
 
         if not text_to_analyze or len(text_to_analyze.split()) < 30:
-            logger.warning(
-                f"[DEBUG] Analysis failed: text_to_analyze word count ({len(text_to_analyze.split())}) is less than 30.")
+            logger.warning(f"[DEBUG] Analysis failed: text_to_analyze word count ({len(text_to_analyze.split())}) is less than 30.")
             return jsonify({"error": "The extracted article text is too short for analysis. Please provide a valid news article URL or more article text."}), 400
 
-        api_key = current_app.config.get('a7f261651cd740d395c3af52fda5b5c1')
+        api_key = current_app.config.get('NEWS_API_KEY')
         api_url = current_app.config.get('NEWS_API_URL')
 
         ai_result = classifier.classify_text(text_to_analyze)
