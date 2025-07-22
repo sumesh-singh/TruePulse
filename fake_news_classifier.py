@@ -77,30 +77,34 @@ class FakeNewsClassifier:
         return self.fake_news_detector is not None
 
     def calculate_trust_score(self, fake_news_result, sentiment_result, fallback_reason=None):
-        """Calculate a trust score based on fake news detection and sentiment analysis (more nuanced)"""
-        base_score = 50  # Default neutral score
-        model_contrib = 0
+    base_score = 50
+    model_contrib = 0
 
-        # If fallback is used and not a real authenticity classifier, drop trust
-        if fallback_reason:
-            return 40 if "fallback" in fallback_reason.lower() else 50
+    # If fallback is used and not a real authenticity classifier, drop trust
+    if fallback_reason:
+        # Perhaps a more nuanced drop based on the fallback type, or just aim to remove fallbacks
+        return 40 if "fallback" in fallback_reason.lower() else 50
 
-        if fake_news_result:
-            label = fake_news_result['label'].upper()
-            score = fake_news_result['score']
-            # Distinguish fake/news for known models
-            if label in ['FAKE', 'LABEL_1', "LABEL_1_FAKE", "LABEL_FAKE"]:
-                model_contrib = max(10, 50 - (score * 40))
-                base_score = model_contrib
-            elif label in ['REAL', 'LABEL_0', "LABEL_0_REAL", "LABEL_REAL"]:
-                model_contrib = min(90, 50 + (score * 40))
-                base_score = model_contrib
-            else:
-                base_score = 50
+    # Integrate fake_news_result
+    if fake_news_result == 'Real':
+        model_contrib += 30 # Significant boost for real news
+    elif fake_news_result == 'Fake':
+        model_contrib -= 40 # Significant penalty for fake news
+    else: # e.g., 'Uncertain' or 'Neutral'
+        model_contrib += 0 # No change or slight adjustment
 
-            # If model is not confident (score ~0.5), trust score hovers around baseline
-            if 0.35 < score < 0.65:
-                base_score += random.randint(-10, 10)
+    # Integrate sentiment_result more granularly
+    # This is just an example; you'd need to define thresholds and impacts
+    if sentiment_result == 'Negative' and fake_news_result != 'Fake':
+        model_contrib -= 5 # Slightly decrease if negative sentiment in "real" news
+    elif sentiment_result == 'Positive' and fake_news_result != 'Real':
+        model_contrib -= 5 # Slightly decrease if overly positive sentiment in "fake" news
+
+
+    # Combine and cap the score
+    final_score = base_score + model_contrib
+    return max(0, min(100, final_score))
+
 
         # Adjust based on sentiment (neutral/balanced news is often more trustworthy)
         if sentiment_result and sentiment_result['sentiment']:
