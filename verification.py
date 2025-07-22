@@ -79,13 +79,9 @@ def fetch_external_articles(text, api_key, api_url):
     else:
         summary = "Could not find any similar reports from trusted news sources."
 
-    final_result = {
+    # Removed the incorrect 'similar_articles' assignment from here.
+    return {
         "verification_summary": summary,
         "verified_sources": verified_sources,
         "related_articles": related_articles
     }
-
-    if "related_articles" in final_result:
-        final_result["similar_articles"] = final_result["related_articles"]
-
-    return final_result

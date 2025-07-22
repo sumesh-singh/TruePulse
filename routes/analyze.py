@@ -18,14 +18,23 @@ def get_text_from_url(url):
         response = requests.get(url, timeout=15, headers=headers)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # --- Improved text extraction logic ---
+        main_content = soup.find('article') or soup.find('main')
+        
+        if main_content:
+            extracted_text = main_content.get_text(separator=' ', strip=True)
+        else:
+            # Fallback to the original method if no <article> or <main> tag is found
+            text_parts = [p.get_text(strip=True) for p in soup.find_all('p')]
+            extracted_text = ' '.join(text_parts)
 
-        text_parts = [p.get_text(strip=True) for p in soup.find_all('p')]
-        extracted_text = ' '.join(text_parts)
-
+        # As a last resort, if the text is still too short, get all text from the body
         if len(extracted_text.split()) < 50:
-            extracted_text = soup.get_text(separator=' ', strip=True)
+            extracted_text = soup.body.get_text(separator=' ', strip=True)
 
         return re.sub(r'\s+', ' ', extracted_text).strip()
+
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching {url}: {e}", exc_info=True)
         return f"Error: Could not retrieve content from the URL. The site may be unresponsive or blocking requests."
@@ -51,43 +60,56 @@ def analyze_unified():
             url = data['url'].strip()
             source_domain = domain_from_url(url)
             text_to_analyze = get_text_from_url(url)
+            logger.info(f"[DEBUG] Input type: URL. Extracted text word count: {len(text_to_analyze.split())}")
             if isinstance(text_to_analyze, str) and text_to_analyze.startswith("Error:"):
                 return jsonify({"error": text_to_analyze}), 400
             print(
                 f"[DEBUG] Text extracted from URL ({source_domain}): {text_to_analyze[:200]}...")
         elif 'text' in data and data['text']:
             text_to_analyze = data['text'].strip()
+            logger.info(f"[DEBUG] Input type: Text. Provided text word count: {len(text_to_analyze.split())}")
 
         if not text_to_analyze or len(text_to_analyze.split()) < 30:
+            logger.warning(f"[DEBUG] Analysis failed: text_to_analyze word count ({len(text_to_analyze.split())}) is less than 30.")
             return jsonify({"error": "The extracted article text is too short for analysis. Please provide a valid news article URL or more article text."}), 400
 
         api_key = current_app.config.get('NEWS_API_KEY')
         api_url = current_app.config.get('NEWS_API_URL')
 
         ai_result = classifier.classify_text(text_to_analyze)
-        external_articles_data = fetch_external_articles(text_to_analyze, api_key, api_url)
-        
+        external_articles_data = fetch_external_articles(
+            text_to_analyze, api_key, api_url)
+
         final_result = {**ai_result, **external_articles_data}
-        
+
         reasoning = [ai_result.get('reasoning', 'Initial AI assessment.')]
 
         if source_domain and source_domain in TRUSTED_NEWS_DOMAINS:
-            final_result['trust_score'] = min(100, ai_result.get('trust_score', 50) + 20)
-            reasoning.append(f"Source ({source_domain}) is on our trusted list, increasing credibility.")
-        
+            final_result['trust_score'] = min(
+                100, ai_result.get('trust_score', 50) + 20)
+            reasoning.append(
+                f"Source ({source_domain}) is on our trusted list, increasing credibility.")
+
         verified_sources = external_articles_data.get("verified_sources")
         if verified_sources:
-            final_result['trust_score'] = min(100, final_result['trust_score'] + 25)
-            reasoning.append(f"Cross-verification found {len(verified_sources)} similar reports from other trusted outlets.")
+            final_result['trust_score'] = min(
+                100, final_result['trust_score'] + 25)
+            reasoning.append(
+                f"Cross-verification found {len(verified_sources)} similar reports from other trusted outlets.")
         else:
-            related_articles = external_articles_data.get("related_articles", [])
+            related_articles = external_articles_data.get(
+                "related_articles", [])
             if related_articles:
-                 final_result['trust_score'] = min(100, final_result['trust_score'] + 10)
-                 reasoning.append(f"Found {len(related_articles)} related articles online. While not from major trusted sources, this indicates the topic is being discussed.")
+                final_result['trust_score'] = min(
+                    100, final_result['trust_score'] + 10)
+                reasoning.append(
+                    f"Found {len(related_articles)} related articles online. While not from major trusted sources, this indicates the topic is being discussed.")
             else:
-                 final_result['trust_score'] = max(0, final_result['trust_score'] - 20)
-                 reasoning.append("No similar reports were found from other major news outlets or other online sources, which reduces confidence.")
-            
+                final_result['trust_score'] = max(
+                    0, final_result['trust_score'] - 20)
+                reasoning.append(
+                    "No similar reports were found from other major news outlets or other online sources, which reduces confidence.")
+
         final_result['reasoning'] = " ".join(reasoning)
 
         return jsonify(final_result)
