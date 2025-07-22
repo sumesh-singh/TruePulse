@@ -16,7 +16,7 @@ def get_articles_from_api(query, api_key, api_url):
         'apiKey': api_key,
         'language': 'en',
         'sortBy': 'relevancy',
-        'pageSize': 10
+        'pageSize': 100 
     }
 
     try:
@@ -60,14 +60,14 @@ def fetch_external_articles(text, api_key, api_url):
     for article in search_result.get("articles", []):
         source_url = article.get("url", "")
         domain = domain_from_url(source_url)
-
-        # Add to general related articles list
-        if len(related_articles) < 5:  # Limit to 5
-            related_articles.append(article)
-
-        # If from a trusted domain, also add to verified list
+        
+        # Add to general related articles list - limiting to 6 as requested
+        if len(related_articles) < 6:
+             related_articles.append(article)
+        
+        # If from a trusted domain, also add to verified list - limit to 3
         if domain in TRUSTED_NEWS_DOMAINS:
-            if len(verified_sources) < 3:  # Limit to 3
+            if len(verified_sources) < 3:
                 verified_sources.append({
                     "title": article.get("title"),
                     "url": source_url,

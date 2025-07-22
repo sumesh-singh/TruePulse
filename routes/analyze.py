@@ -44,61 +44,50 @@ def analyze_unified():
         return jsonify({"error": "The analysis model is not loaded on the server."}), 500
 
     try:
-        text_to_analyze = data.get('text', '').strip()
+        text_to_analyze = ""
         source_domain = None
 
-        if 'url' in data:
+        if 'url' in data and data['url']:
             url = data['url'].strip()
             source_domain = domain_from_url(url)
             text_to_analyze = get_text_from_url(url)
             if isinstance(text_to_analyze, str) and text_to_analyze.startswith("Error:"):
                 return jsonify({"error": text_to_analyze}), 400
-            # Log for debugging
             print(
                 f"[DEBUG] Text extracted from URL ({source_domain}): {text_to_analyze[:200]}...")
+        elif 'text' in data and data['text']:
+            text_to_analyze = data['text'].strip()
 
-        elif text:
-            # Treat as plain text
-            text_to_analyze = text
-
-        # Now check the length of the extracted text, not the URL itself
         if not text_to_analyze or len(text_to_analyze.split()) < 30:
             return jsonify({"error": "The extracted article text is too short for analysis. Please provide a valid news article URL or more article text."}), 400
 
-        # Get News API config from the app
         api_key = current_app.config.get('NEWS_API_KEY')
         api_url = current_app.config.get('NEWS_API_URL')
 
-        # Perform core AI analysis
         ai_result = classifier.classify_text(text_to_analyze)
-
-        # Fetch external articles (includes verification and related articles)
-        external_articles_data = fetch_external_articles(
-            text_to_analyze, api_key, api_url)
-
-        # Combine all results
+        external_articles_data = fetch_external_articles(text_to_analyze, api_key, api_url)
+        
         final_result = {**ai_result, **external_articles_data}
-
-        # Build the final, comprehensive reasoning
+        
         reasoning = [ai_result.get('reasoning', 'Initial AI assessment.')]
 
         if source_domain and source_domain in TRUSTED_NEWS_DOMAINS:
-            final_result['trust_score'] = min(
-                100, ai_result.get('trust_score', 50) + 20)
-            reasoning.append(
-                f"Source ({source_domain}) is on our trusted list, increasing credibility.")
-
-        if external_articles_data.get("verified_sources"):
-            final_result['trust_score'] = min(
-                100, final_result['trust_score'] + 25)
-            reasoning.append(
-                "Cross-verification found similar reports from other trusted outlets.")
+            final_result['trust_score'] = min(100, ai_result.get('trust_score', 50) + 20)
+            reasoning.append(f"Source ({source_domain}) is on our trusted list, increasing credibility.")
+        
+        verified_sources = external_articles_data.get("verified_sources")
+        if verified_sources:
+            final_result['trust_score'] = min(100, final_result['trust_score'] + 25)
+            reasoning.append(f"Cross-verification found {len(verified_sources)} similar reports from other trusted outlets.")
         else:
-            final_result['trust_score'] = max(
-                0, final_result['trust_score'] - 20)
-            reasoning.append(
-                "No similar reports were found from other major news outlets, which reduces confidence.")
-
+            related_articles = external_articles_data.get("related_articles", [])
+            if related_articles:
+                 final_result['trust_score'] = min(100, final_result['trust_score'] + 10)
+                 reasoning.append(f"Found {len(related_articles)} related articles online. While not from major trusted sources, this indicates the topic is being discussed.")
+            else:
+                 final_result['trust_score'] = max(0, final_result['trust_score'] - 20)
+                 reasoning.append("No similar reports were found from other major news outlets or other online sources, which reduces confidence.")
+            
         final_result['reasoning'] = " ".join(reasoning)
 
         # No reference to similar.py or /similar endpoint anymore
