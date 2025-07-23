@@ -145,15 +145,15 @@ class FakeNewsClassifier:
         if not isinstance(text, str) or not text.strip():
             raise ValueError("Text must be a non-empty string")
 
-        # Truncate text to the maximum sequence length if a tokenizer is available
+        # Truncate text using the tokenizer to the maximum sequence length if a tokenizer is available
         if self.tokenizer:
             max_len = self.tokenizer.model_max_length
-            if len(text.split()) > max_len: # Simple word count check, can be improved with tokenizer
-                 # Tokenize and truncate
-                tokens = self.tokenizer.encode(text, max_length=max_len, truncation=True, return_tensors='pt')
-                truncated_text = self.tokenizer.decode(tokens[0], skip_special_tokens=True)
-                logger.warning(f"Input text truncated to {max_len} tokens.")
-                text = truncated_text
+            # Tokenize and truncate
+            tokens = self.tokenizer.encode(text, max_length=max_len, truncation=True, return_tensors='pt')
+            truncated_text = self.tokenizer.decode(tokens[0], skip_special_tokens=True)
+            if len(tokens[0]) > max_len: # Check if truncation actually occurred
+                 logger.warning(f"Input text truncated to {max_len} tokens.")
+            text = truncated_text
 
         try:
             # Sentiment analysis
