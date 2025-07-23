@@ -149,11 +149,14 @@ class FakeNewsClassifier:
         if self.tokenizer:
             max_len = self.tokenizer.model_max_length
             # Tokenize and truncate
-            tokens = self.tokenizer.encode(text, max_length=max_len, truncation=True, return_tensors='pt')
-            truncated_text = self.tokenizer.decode(tokens[0], skip_special_tokens=True)
-            if len(tokens[0]) > max_len: # Check if truncation actually occurred
-                 logger.warning(f"Input text truncated to {max_len} tokens.")
-            text = truncated_text
+            encoded_inputs = self.tokenizer(
+                text,
+                max_length=max_len,
+                truncation=True,
+                return_tensors='pt'
+            )
+            text = self.tokenizer.decode(encoded_inputs['input_ids'][0], skip_special_tokens=True)
+            logger.warning(f"Input text truncated to {len(encoded_inputs['input_ids'][0])} tokens (max_len: {max_len}).")
 
         try:
             # Sentiment analysis
@@ -213,7 +216,23 @@ class FakeNewsClassifier:
 
             if self.fake_news_detector is not None:
                 try:
-                    fake_results = self.fake_news_detector(text)
+                    # Fake news detection
+                    # Apply the same truncation here as well
+                    if self.tokenizer:
+                        max_len_fake_news = self.tokenizer.model_max_length # Assuming the same max_len for both models
+                        encoded_inputs_fake_news = self.tokenizer(
+                            text,
+                            max_length=max_len_fake_news,
+                            truncation=True,
+                            return_tensors='pt'
+                        )
+                        text_for_fake_news = self.tokenizer.decode(encoded_inputs_fake_news['input_ids'][0], skip_special_tokens=True)
+                        logger.warning(f"Input text for fake news detection truncated to {len(encoded_inputs_fake_news['input_ids'][0])} tokens (max_len: {max_len_fake_news}).")
+                    else:
+                        text_for_fake_news = text # Use original truncated text if tokenizer is not available
+
+
+                    fake_results = self.fake_news_detector(text_for_fake_news)
                     if isinstance(fake_results, list) and len(fake_results) > 0 and isinstance(fake_results[0], list):
                         fake_results = fake_results[0]
 
@@ -258,6 +277,7 @@ class FakeNewsClassifier:
                         real_or_fake = best_label.title()
                         fake_confidence = round(best_score*100,1)
                         reasoning = f"Model only returned {best_label} with score {fake_confidence}%."
+
 
                     fake_news_result = max(fake_results, key=lambda x: x['score'])
                 except Exception as e:
