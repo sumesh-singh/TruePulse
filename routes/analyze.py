@@ -33,7 +33,7 @@ def get_text_from_url(url):
         if len(extracted_text.split()) < 50:
             extracted_text = soup.body.get_text(separator=' ', strip=True)
 
-        return re.sub(r'\s+', ' ', extracted_text).strip()
+        return re.sub(r's+', ' ', extracted_text).strip()
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching {url}: {e}", exc_info=True)
@@ -82,33 +82,53 @@ def analyze_unified():
 
         final_result = {**ai_result, **external_articles_data}
 
-        reasoning = [ai_result.get('reasoning', 'Initial AI assessment.')]
+        # Initialize reasoning with the AI classification result
+        reasoning = []
+        classification = ai_result.get('classification', 'Unknown')
+        confidence = ai_result.get('confidence', 0)
+        initial_trust_score = ai_result.get('trust_score', 50)
+        
+        reasoning.append(f"Initial AI classification: {classification} with {confidence:.2f}% confidence.")
+        reasoning.append(f"Starting trust score: {initial_trust_score}.")
 
-        if source_domain and source_domain in TRUSTED_NEWS_DOMAINS:
-            final_result['trust_score'] = min(
-                100, ai_result.get('trust_score', 50) + 20)
-            reasoning.append(
-                f"Source ({source_domain}) is on our trusted list, increasing credibility.")
+        # Adjust trust score and reasoning based on source domain trustworthiness
+        if source_domain:
+            if source_domain in TRUSTED_NEWS_DOMAINS:
+                final_result['trust_score'] = min(100, final_result.get('trust_score', initial_trust_score) + 20)
+                reasoning.append(f"Source domain ({source_domain}) is on our trusted list, increasing credibility and trust score.")
+            # No specific penalty for untrusted for now, but can be added if needed
 
+        # Adjust trust score and reasoning based on external verification
         verified_sources = external_articles_data.get("verified_sources")
         if verified_sources:
             final_result['trust_score'] = min(
-                100, final_result['trust_score'] + 25)
+                100, final_result.get('trust_score', initial_trust_score) + 25)
             reasoning.append(
-                f"Cross-verification found {len(verified_sources)} similar reports from other trusted outlets.")
+                f"Cross-verification found {len(verified_sources)} similar reports from other trusted outlets, further increasing trust score.")
         else:
             related_articles = external_articles_data.get(
                 "related_articles", [])
             if related_articles:
+                # Small increase for related articles, less than verified sources
                 final_result['trust_score'] = min(
-                    100, final_result['trust_score'] + 10)
+                    100, final_result.get('trust_score', initial_trust_score) + 10)
                 reasoning.append(
-                    f"Found {len(related_articles)} related articles online. While not from major trusted sources, this indicates the topic is being discussed.")
+                    f"Found {len(related_articles)} related articles online. While not from major trusted sources, this indicates the topic is being discussed, slightly increasing confidence.")
             else:
+                # Decrease if no related or verified articles are found
                 final_result['trust_score'] = max(
-                    0, final_result['trust_score'] - 20)
+                    0, final_result.get('trust_score', initial_trust_score) - 20)
                 reasoning.append(
-                    "No similar reports were found from other major news outlets or other online sources, which reduces confidence.")
+                    "No similar reports were found from other major news outlets or other online sources, which reduces confidence and trust score.")
+                
+        # Add reasoning about classification based on confidence
+        if classification == 'Uncertain':
+             reasoning.append(f"Classification is 'Uncertain' because the AI model's confidence level ({confidence:.2f}%) is below the threshold for a definitive 'Real' or 'Fake' classification.")
+        elif classification == 'Fake':
+             reasoning.append(f"Classification is 'Fake' based on the AI model's analysis and {confidence:.2f}% confidence.")
+        elif classification == 'Real':
+             reasoning.append(f"Classification is 'Real' based on the AI model's analysis and {confidence:.2f}% confidence.")
+
 
         final_result['reasoning'] = " ".join(reasoning)
 
