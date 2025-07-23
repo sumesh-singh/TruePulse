@@ -1,4 +1,4 @@
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer
 import logging
 import random
 
@@ -12,6 +12,7 @@ class FakeNewsClassifier:
         """Initialize the sentiment analysis and fake news detection pipelines"""
         self.classifier = None
         self.fake_news_detector = None
+        self.tokenizer = None # Add tokenizer attribute
         self.load_models()
 
     def load_models(self):
@@ -36,6 +37,21 @@ class FakeNewsClassifier:
             except Exception as fallback_error:
                 logger.error(f"✗ Failed to load fallback sentiment model: {fallback_error}")
                 self.classifier = None
+
+        # Load tokenizer for the sentiment analysis model
+        try:
+            logger.info("Loading tokenizer for sentiment analysis model...")
+            self.tokenizer = AutoTokenizer.from_pretrained('cardiffnlp/twitter-roberta-base-sentiment-latest')
+            logger.info("✓ Tokenizer loaded successfully")
+        except Exception as e:
+            logger.error(f"✗ Failed to load tokenizer: {e}")
+            # Load fallback tokenizer if necessary
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased-finetuned-sst-2-english')
+                logger.info("✓ Fallback tokenizer loaded successfully")
+            except Exception as fallback_error:
+                logger.error(f"✗ Failed to load fallback tokenizer: {fallback_error}")
+
 
         # Load fake news detection model (switch to winterForestStump/Roberta-fake-news-detector)
         try:
@@ -70,40 +86,40 @@ class FakeNewsClassifier:
                 except Exception as second_fallback_error:
                     logger.error(f"✗ Failed to load fallback fake news detection model distilbert-base-uncased-finetuned-sst-2-english: {second_fallback_error}")
                     self.fake_news_detector = None
-    
+
     def is_model_loaded(self):
         """Checks if the primary models are loaded and ready."""
         # The fake news detector is the most crucial part.
         return self.fake_news_detector is not None
 
     def calculate_trust_score(self, fake_news_result, sentiment_result, fallback_reason=None):
-    base_score = 50
-    model_contrib = 0
+        base_score = 50
+        model_contrib = 0
 
-    # If fallback is used and not a real authenticity classifier, drop trust
-    if fallback_reason:
-        # Perhaps a more nuanced drop based on the fallback type, or just aim to remove fallbacks
-        return 40 if "fallback" in fallback_reason.lower() else 50
+        # If fallback is used and not a real authenticity classifier, drop trust
+        if fallback_reason:
+            # Perhaps a more nuanced drop based on the fallback type, or just aim to remove fallbacks
+            return 40 if "fallback" in fallback_reason.lower() else 50
 
-    # Integrate fake_news_result
-    if fake_news_result == 'Real':
-        model_contrib += 30 # Significant boost for real news
-    elif fake_news_result == 'Fake':
-        model_contrib -= 40 # Significant penalty for fake news
-    else: # e.g., 'Uncertain' or 'Neutral'
-        model_contrib += 0 # No change or slight adjustment
+        # Integrate fake_news_result
+        if fake_news_result == 'Real':
+            model_contrib += 30 # Significant boost for real news
+        elif fake_news_result == 'Fake':
+            model_contrib -= 40 # Significant penalty for fake news
+        else: # e.g., 'Uncertain' or 'Neutral'
+            model_contrib += 0 # No change or slight adjustment
 
-    # Integrate sentiment_result more granularly
-    # This is just an example; you'd need to define thresholds and impacts
-    if sentiment_result == 'Negative' and fake_news_result != 'Fake':
-        model_contrib -= 5 # Slightly decrease if negative sentiment in "real" news
-    elif sentiment_result == 'Positive' and fake_news_result != 'Real':
-        model_contrib -= 5 # Slightly decrease if overly positive sentiment in "fake" news
+        # Integrate sentiment_result more granularly
+        # This is just an example; you'd need to define thresholds and impacts
+        if sentiment_result == 'Negative' and fake_news_result != 'Fake':
+            model_contrib -= 5 # Slightly decrease if negative sentiment in "real" news
+        elif sentiment_result == 'Positive' and fake_news_result != 'Real':
+            model_contrib -= 5 # Slightly decrease if overly positive sentiment in "fake" news
 
 
-    # Combine and cap the score
-    final_score = base_score + model_contrib
-    return max(0, min(100, final_score))
+        # Combine and cap the score
+        final_score = base_score + model_contrib
+        return max(0, min(100, final_score))
 
 
         # Adjust based on sentiment (neutral/balanced news is often more trustworthy)
@@ -128,6 +144,16 @@ class FakeNewsClassifier:
 
         if not isinstance(text, str) or not text.strip():
             raise ValueError("Text must be a non-empty string")
+
+        # Truncate text to the maximum sequence length if a tokenizer is available
+        if self.tokenizer:
+            max_len = self.tokenizer.model_max_length
+            if len(text.split()) > max_len: # Simple word count check, can be improved with tokenizer
+                 # Tokenize and truncate
+                tokens = self.tokenizer.encode(text, max_length=max_len, truncation=True, return_tensors='pt')
+                truncated_text = self.tokenizer.decode(tokens[0], skip_special_tokens=True)
+                logger.warning(f"Input text truncated to {max_len} tokens.")
+                text = truncated_text
 
         try:
             # Sentiment analysis
