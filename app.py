@@ -29,7 +29,7 @@ except Exception as e:
 app.config['classifier'] = classifier
 
 # Configure News API key and URL from environment variables
-app.config['NEWS_API_KEY'] = os.environ.get('NEWS_API_KEY', 'your_news_api_key_here') # Replace with your actual key or set env var
+app.config['NEWS_API_KEY'] = os.environ.get('NEWS_API_KEY', 'a7f261651cd740d395c3af52fda5b5c1') # Replace with your actual key or set env var
 app.config['NEWS_API_URL'] = 'https://newsapi.org/v2/everything'
 
 # Register API blueprints
