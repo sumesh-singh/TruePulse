@@ -1,4 +1,3 @@
-
 # TruePulse – News Credibility & AI Analysis Tool
 
 ## Project Overview
@@ -19,6 +18,7 @@ TruePulse is a web tool that helps users quickly assess the credibility, sentime
 ## Quick Start
 
 This project features:
+
 - A **Python (Flask)** backend (with Hugging Face Transformers)
 - A **React (Vite, TypeScript)** frontend
 
@@ -29,10 +29,12 @@ This project features:
 ### 1. Prerequisites
 
 **Backend:**
+
 - Python 3.8 or newer ([Download Python](https://www.python.org/downloads/))
 - pip (comes with most Python installations)
 
 **Frontend:**
+
 - Node.js 18+ and npm ([Download Node.js](https://nodejs.org/))
 
 **Recommended:**  
@@ -43,12 +45,14 @@ Do all setup steps in your own virtual environment (venv/conda for Python, and n
 ### 2. Install & Run Backend (Flask + Transformers)
 
 **a) Clone this repository**
+
 ```sh
 git clone https://github.com/sumesh-singh/TruePulse.git
 cd TruePulse
 ```
 
 **b) Install backend dependencies**
+
 ```sh
 # In the project root
 pip install -r requirements.txt
@@ -57,14 +61,17 @@ pip install flask transformers torch beautifulsoup4 requests
 ```
 
 **c) Start the backend server**
+
 ```sh
 # In the project root
 python app.py
 ```
+
 - The backend runs at [http://localhost:5000](http://localhost:5000).
 - Health check: [http://localhost:5000/health](http://localhost:5000/health)
 
 **_If you get errors (e.g., torch install fails):_**
+
 - Confirm your Python version: `python --version`
 - Make sure `pip` updates packages in the correct Python environment: `which pip`
 - If using Apple Silicon (M1/M2) or Windows, see [PyTorch Install Guide](https://pytorch.org/get-started/locally/)
@@ -74,12 +81,14 @@ python app.py
 ### 3. Install & Run Frontend (React/Vite)
 
 **a) Install frontend dependencies**
+
 ```sh
 # In the project root (where package.json is)
 npm install
 ```
 
 **b) Start frontend development server**
+
 ```sh
 npm run dev
 ```
@@ -113,8 +122,8 @@ Open your browser and go to: [http://localhost:8080](http://localhost:8080)
 
 ## Deployment & Custom Domain
 
-- You can publish your app to production via Lovable (see project dashboard)
-- To connect a custom domain, check Lovable's docs: https://docs.lovable.dev/tips-tricks/custom-domain
+- You can publish your app to production via . (see project dashboard)
+- To connect a custom domain, check .'s docs: https://docs...dev/tips-tricks/custom-domain
 
 ---
 
@@ -134,6 +143,6 @@ Open your browser and go to: [http://localhost:8080](http://localhost:8080)
 
 ## Additional Resources
 
-- [Lovable Documentation](https://docs.lovable.dev/)
-- [Step by Step Project Guide](https://docs.lovable.dev/user-guides/quickstart)
-- [Join the Lovable Community](https://discord.com/channels/1119885301872070706/1280461670979993613)
+- [. Documentation](https://docs...dev/)
+- [Step by Step Project Guide](https://docs...dev/user-guides/quickstart)
+- [Join the . Community](https://discord.com/channels/1119885301872070706/1280461670979993613)
