@@ -1,148 +1,79 @@
-# TruePulse – News Credibility & AI Analysis Tool
+# TruePulse – AI-Powered News Verification Tool
 
-## Project Overview
+TruePulse is an intelligent web application designed to combat misinformation by providing a comprehensive analysis of news articles. It helps users verify the authenticity of online content through AI-powered classification, sentiment analysis, and external source verification.
 
-TruePulse is a web tool that helps users quickly assess the credibility, sentiment, and key topics of news articles or text snippets. Powered by modern AI/ML models, it offers instant fake news detection, summary, and trust/confidence scoring for any pasted news link or text.
+## How It Works
 
----
+TruePulse analyzes a news article from a given URL through the following steps:
 
-## Features
+1.  **URL Input**: The user provides a link to a news article.
+2.  **Text Extraction**: The Flask backend scrapes the article's text content using `BeautifulSoup`.
+3.  **AI Analysis**: A `FakeNewsClassifier` class, leveraging Hugging Face Transformers, performs two key tasks:
+    *   **Fake News Detection**: Classifies the article as "Real" or "Fake."
+    *   **Sentiment Analysis**: Determines the sentiment of the text (e.g., Positive, Negative, Neutral).
+4.  **External Verification**: The application fetches related articles from trusted sources using the News API to provide external context and verification.
+5.  **Trust Score Calculation**: A trust score is generated based on the AI classification, source domain reputation, and external verification.
+6.  **Display Results**: The React frontend presents a detailed report including the classification, reasoning, sentiment, key topics, and a list of related articles.
 
-- Paste news links OR article text for instant AI analysis
-- See credibility ("fake"/"real" with confidence), sentiment, key topics, and summary
-- Works on arbitrary news articles (not tied to pre-ranked news sources)
-- Connects to similar and reliable news for cross-verification
+## Key Features
 
----
+-   **AI-Powered Classification**: Determines if an article is likely real or fake with a confidence score.
+-   **Comprehensive Analysis**: Provides sentiment analysis, key topic extraction, and detailed reasoning for the classification.
+-   **Trust Score**: Offers a simple, at-a-glance credibility metric (0-100).
+-   **External Verification**: Fetches related articles from trusted news outlets to help users fact-check and cross-reference information.
+-   **Modern UI**: A clean, user-friendly interface for seamless interaction.
 
-## Quick Start
+## Project Setup and Execution
 
-This project features:
+This project consists of a Python (Flask) backend and a React (Vite) frontend. For the best experience, run each in a separate terminal.
 
-- A **Python (Flask)** backend (with Hugging Face Transformers)
-- A **React (Vite, TypeScript)** frontend
+### Prerequisites
 
-**Tip:** Run backend and frontend in two separate terminals.
+-   **Backend**: Python 3.8+
+-   **Frontend**: Node.js 18+ and npm
 
----
-
-### 1. Prerequisites
-
-**Backend:**
-
-- Python 3.8 or newer ([Download Python](https://www.python.org/downloads/))
-- pip (comes with most Python installations)
-
-**Frontend:**
-
-- Node.js 18+ and npm ([Download Node.js](https://nodejs.org/))
-
-**Recommended:**  
-Do all setup steps in your own virtual environment (venv/conda for Python, and nvm/nodeenv for Node).
-
----
-
-### 2. Install & Run Backend (Flask + Transformers)
-
-**a) Clone this repository**
+### 1. Clone the Repository
 
 ```sh
 git clone https://github.com/sumesh-singh/TruePulse.git
 cd TruePulse
 ```
 
-**b) Install backend dependencies**
+### 2. Set Up and Run the Backend
 
 ```sh
-# In the project root
+# Install dependencies
 pip install -r requirements.txt
-# If requirements.txt does not exist run:
-pip install flask transformers torch beautifulsoup4 requests
-```
 
-**c) Start the backend server**
-
-```sh
-# In the project root
+# Run the server
 python app.py
 ```
 
-- The backend runs at [http://localhost:5000](http://localhost:5000).
-- Health check: [http://localhost:5000/health](http://localhost:5000/health)
+The backend will be available at `http://localhost:5000`.
 
-**_If you get errors (e.g., torch install fails):_**
-
-- Confirm your Python version: `python --version`
-- Make sure `pip` updates packages in the correct Python environment: `which pip`
-- If using Apple Silicon (M1/M2) or Windows, see [PyTorch Install Guide](https://pytorch.org/get-started/locally/)
-
----
-
-### 3. Install & Run Frontend (React/Vite)
-
-**a) Install frontend dependencies**
+### 3. Set Up and Run the Frontend
 
 ```sh
-# In the project root (where package.json is)
+# Install dependencies
 npm install
-```
 
-**b) Start frontend development server**
-
-```sh
+# Run the development server
 npm run dev
 ```
 
-Open your browser and go to: [http://localhost:8080](http://localhost:8080)
+The frontend will be accessible at `http://localhost:8080` or a similar port.
 
-**Frontend automatically proxies API requests** (`/analyze`, `/similar`, `/health`) to your local Flask backend.
+### 4. Environment Variables
 
----
+To fetch related articles, the application requires a News API key. You can set it as an environment variable.
 
-### 4. Environment Variables (NewsAPI, etc)
+-   **Windows**:
+    ```sh
+    set NEWS_API_KEY=your_key_here
+    ```
+-   **macOS/Linux**:
+    ```sh
+    export NEWS_API_KEY=your_key_here
+    ```
 
-- The backend uses a NewsAPI key for finding similar articles:  
-  Default key is provided, but you can override it by setting the `NEWS_API_KEY` environment variable before running the backend:
-  ```
-  export NEWS_API_KEY=your_actual_newsapi_key_here
-  ```
-  [Get your own free NewsAPI key](https://newsapi.org/)
-
----
-
-### 5. Troubleshooting & Tips
-
-- If you see "Backend offline" on the UI, make sure your backend server is running and listening on port 5000.
-- If you modify the backend, restart the server for changes to take effect.
-- Windows users: Use `set NEWS_API_KEY=...` instead of `export ...`
-- For package issues, confirm you are using correct virtualenv or node version managers.
-- Look for errors in the terminal or browser console for more clues.
-
----
-
-## Deployment & Custom Domain
-
-- You can publish your app to production via . (see project dashboard)
-- To connect a custom domain, check .'s docs: https://docs...dev/tips-tricks/custom-domain
-
----
-
-## Technologies Used
-
-- **Frontend:** React (Vite, TypeScript), Shadcn UI, Tailwind CSS
-- **Backend:** Python, Flask, Hugging Face Transformers, Torch
-
----
-
-## Contributing
-
-- Fork the repo and create a branch.
-- Submit a pull request with your change!
-
----
-
-## Additional Resources
-
-- [. Documentation](https://docs...dev/)
-- [Step by Step Project Guide](https://docs...dev/user-guides/quickstart)
-- [Join the . Community](https://discord.com/channels/1119885301872070706/1280461670979993613)
+Get a free key from [newsapi.org](https://newsapi.org/).
