@@ -148,27 +148,19 @@ class FakeNewsClassifier:
         # Truncate text using the tokenizer to the maximum sequence length if a tokenizer is available
         if self.tokenizer:
             max_len = self.tokenizer.model_max_length
-            # Tokenize and truncate
-            encoded_inputs = self.tokenizer(
-                text,
-                max_length=max_len,
-                truncation=True,
-                return_tensors='pt'
-            )
-            text = self.tokenizer.decode(encoded_inputs['input_ids'][0], skip_special_tokens=True)
-            logger.warning(f"Input text truncated to {len(encoded_inputs['input_ids'][0])} tokens (max_len: {max_len}).")
-            # More robust check using the tokenizer's encoding capabilities
-            tokens = self.tokenizer.encode(text, max_length=max_len, truncation=True, return_tensors='pt')
-            
-            if len(tokens[0]) > max_len:
-                logger.warning(f"Input text is longer than model's max length of {max_len}. Truncating.")
+            # Handle cases where model_max_length is excessively large
+            if max_len > 512:
+                logger.warning(f"Model max length {max_len} is very large. Capping at 512.")
+                max_len = 512
 
+            tokens = self.tokenizer.encode(text, max_length=max_len, truncation=True, return_tensors='pt')
             truncated_text = self.tokenizer.decode(tokens[0], skip_special_tokens=True)
 
             if not truncated_text.strip():
                 raise ValueError("Text is empty after truncation.")
 
             text = truncated_text
+            logger.info(f"Input text truncated to fit model's max length of {max_len} tokens.")
 
         try:
             # Sentiment analysis
@@ -229,22 +221,8 @@ class FakeNewsClassifier:
             if self.fake_news_detector is not None:
                 try:
                     # Fake news detection
-                    # Apply the same truncation here as well
-                    if self.tokenizer:
-                        max_len_fake_news = self.tokenizer.model_max_length # Assuming the same max_len for both models
-                        encoded_inputs_fake_news = self.tokenizer(
-                            text,
-                            max_length=max_len_fake_news,
-                            truncation=True,
-                            return_tensors='pt'
-                        )
-                        text_for_fake_news = self.tokenizer.decode(encoded_inputs_fake_news['input_ids'][0], skip_special_tokens=True)
-                        logger.warning(f"Input text for fake news detection truncated to {len(encoded_inputs_fake_news['input_ids'][0])} tokens (max_len: {max_len_fake_news}).")
-                    else:
-                        text_for_fake_news = text # Use original truncated text if tokenizer is not available
-
-
-                    fake_results = self.fake_news_detector(text_for_fake_news)
+                    # The 'text' variable is already truncated, so we can use it directly.
+                    fake_results = self.fake_news_detector(text)
                     if isinstance(fake_results, list) and len(fake_results) > 0 and isinstance(fake_results[0], list):
                         fake_results = fake_results[0]
 
