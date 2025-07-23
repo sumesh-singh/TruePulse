@@ -68,18 +68,19 @@ def fetch_external_articles(text, api_key, api_url):
         source_url = article.get("url", "")
         domain = domain_from_url(source_url)
         
-        # Add to general related articles list - limiting to 6 as requested
-        if len(related_articles) < 6:
-             related_articles.append(article)
-        
-        # If from a trusted domain, also add to verified list - limit to 3
+        # Categorize articles
         if domain in TRUSTED_NEWS_DOMAINS:
+            # If from a trusted domain, add to verified list - limit to 3
             if len(verified_sources) < 3:
                 verified_sources.append({
                     "title": article.get("title"),
                     "url": source_url,
                     "source_name": article.get("source", {}).get("name")
                 })
+        else:
+            # Otherwise, add to general related articles list - limiting to 6
+            if len(related_articles) < 6:
+                related_articles.append(article)
 
     if verified_sources:
         summary = f"Found {len(verified_sources)} similar reports from trusted sources."

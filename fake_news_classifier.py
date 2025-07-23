@@ -157,6 +157,18 @@ class FakeNewsClassifier:
             )
             text = self.tokenizer.decode(encoded_inputs['input_ids'][0], skip_special_tokens=True)
             logger.warning(f"Input text truncated to {len(encoded_inputs['input_ids'][0])} tokens (max_len: {max_len}).")
+            # More robust check using the tokenizer's encoding capabilities
+            tokens = self.tokenizer.encode(text, max_length=max_len, truncation=True, return_tensors='pt')
+            
+            if len(tokens[0]) > max_len:
+                logger.warning(f"Input text is longer than model's max length of {max_len}. Truncating.")
+
+            truncated_text = self.tokenizer.decode(tokens[0], skip_special_tokens=True)
+
+            if not truncated_text.strip():
+                raise ValueError("Text is empty after truncation.")
+
+            text = truncated_text
 
         try:
             # Sentiment analysis

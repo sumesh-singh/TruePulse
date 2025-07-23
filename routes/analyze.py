@@ -80,57 +80,43 @@ def analyze_unified():
         external_articles_data = fetch_external_articles(
             text_to_analyze, api_key, api_url)
 
+        # Combine AI results with external articles data
         final_result = {**ai_result, **external_articles_data}
 
-        # Initialize reasoning with the AI classification result
-        reasoning = []
-        classification = ai_result.get('classification', 'Unknown')
-        confidence = ai_result.get('confidence', 0)
-        initial_trust_score = ai_result.get('trust_score', 50)
-        
-        reasoning.append(f"Initial AI classification: {classification} with {confidence:.2f}% confidence.")
-        reasoning.append(f"Starting trust score: {initial_trust_score}.")
+        # Detailed reasoning generation
+        reasoning_steps = []
+        trust_score = ai_result.get('trust_score', 50)
+        real_or_fake = ai_result.get('real_or_fake', 'Unknown')
+        confidence = ai_result.get('fake_confidence', 0)
 
-        # Adjust trust score and reasoning based on source domain trustworthiness
+        # 1. Base AI reasoning
+        reasoning_steps.append(ai_result.get('reasoning', f'The AI model classified the text as "{real_or_fake}" with {confidence}% confidence.'))
+
+        # 2. Source Domain Trust
         if source_domain:
             if source_domain in TRUSTED_NEWS_DOMAINS:
-                final_result['trust_score'] = min(100, final_result.get('trust_score', initial_trust_score) + 20)
-                reasoning.append(f"Source domain ({source_domain}) is on our trusted list, increasing credibility and trust score.")
-            # No specific penalty for untrusted for now, but can be added if needed
-
-        # Adjust trust score and reasoning based on external verification
-        verified_sources = external_articles_data.get("verified_sources")
-        if verified_sources:
-            final_result['trust_score'] = min(
-                100, final_result.get('trust_score', initial_trust_score) + 25)
-            reasoning.append(
-                f"Cross-verification found {len(verified_sources)} similar reports from other trusted outlets, further increasing trust score.")
-        else:
-            related_articles = external_articles_data.get(
-                "related_articles", [])
-            if related_articles:
-                # Small increase for related articles, less than verified sources
-                final_result['trust_score'] = min(
-                    100, final_result.get('trust_score', initial_trust_score) + 10)
-                reasoning.append(
-                    f"Found {len(related_articles)} related articles online. While not from major trusted sources, this indicates the topic is being discussed, slightly increasing confidence.")
+                trust_score = min(100, trust_score + 15)
+                reasoning_steps.append(f'The article is from a known trusted source ({source_domain}), which increases its credibility.')
             else:
-                # Decrease if no related or verified articles are found
-                final_result['trust_score'] = max(
-                    0, final_result.get('trust_score', initial_trust_score) - 20)
-                reasoning.append(
-                    "No similar reports were found from other major news outlets or other online sources, which reduces confidence and trust score.")
-                
-        # Add reasoning about classification based on confidence
-        if classification == 'Uncertain':
-             reasoning.append(f"Classification is 'Uncertain' because the AI model's confidence level ({confidence:.2f}%) is below the threshold for a definitive 'Real' or 'Fake' classification.")
-        elif classification == 'Fake':
-             reasoning.append(f"Classification is 'Fake' based on the AI model's analysis and {confidence:.2f}% confidence.")
-        elif classification == 'Real':
-             reasoning.append(f"Classification is 'Real' based on the AI model's analysis and {confidence:.2f}% confidence.")
+                trust_score = max(0, trust_score - 5)
+                reasoning_steps.append(f'The source ({source_domain}) is not on our list of highly trusted domains, warranting caution.')
 
+        # 3. External Verification
+        verified_sources = external_articles_data.get('verified_sources', [])
+        related_articles = external_articles_data.get('related_articles', [])
 
-        final_result['reasoning'] = " ".join(reasoning)
+        if verified_sources:
+            trust_score = min(100, trust_score + 20)
+            reasoning_steps.append(f'Found {len(verified_sources)} corroborating reports from other major news outlets, significantly strengthening the original claim.')
+        elif related_articles:
+            trust_score = min(100, trust_score + 10)
+            reasoning_steps.append(f'Found {len(related_articles)} related articles discussing this topic, suggesting it is a real event.')
+        else:
+            trust_score = max(0, trust_score - 15)
+            reasoning_steps.append('Could not find any other sources reporting on this, which lowers confidence in its authenticity.')
+        
+        final_result['trust_score'] = trust_score
+        final_result['reasoning'] = ' '.join(reasoning_steps)
 
         return jsonify(final_result)
 
